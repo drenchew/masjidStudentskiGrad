@@ -123,3 +123,9 @@ docker-compose.override.yml
 
 # Optional REPL history
 .node_repl_history
+
+# Cleanup backup
+.cleanup_backup/
+
+# Development scripts (if you want to keep them local)
+# cleanup-for-production.sh

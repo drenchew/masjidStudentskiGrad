@@ -1,296 +1,435 @@
-# Masjid Studentski Grad Website
+# 🕌 Masjid Studentski Grad
 
-A comprehensive full-stack mosque website with trilingual support (Bulgarian, English, Arabic), featuring auto-updating prayer times, e-commerce for Islamic products, Friday khutbah archive, donations, and admin management panel.
+<div align="center">
 
-## Features
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Java](https://img.shields.io/badge/Java-17-orange.svg)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.1-brightgreen.svg)
+![React](https://img.shields.io/badge/React-18.2-blue.svg)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue.svg)
 
-### Public Features
-- **Prayer Times**: Auto-updating daily prayer times from Aladhan API
-- **Khutbah Archive**: Browse, search, and listen to Friday sermons with audio/video/PDF
+A comprehensive full-stack mosque website with trilingual support (Bulgarian, English, Arabic), featuring auto-updating prayer times, fundraising campaigns, e-commerce, Friday khutbah archive, donations, and admin management panel.
+
+[Live Demo](#) | [Documentation](./DEPLOYMENT_GUIDE.md) | [Report Bug](../../issues) | [Request Feature](../../issues)
+
+</div>
+
+---
+
+## 📋 Table of Contents
+
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Getting Started](#-getting-started)
+- [Deployment](#-deployment)
+- [Project Structure](#-project-structure)
+- [API Documentation](#-api-documentation)
+- [Contributing](#-contributing)
+- [License](#-license)
+
+---
+
+## ✨ Features
+
+### 🌟 Public Features
+- **Prayer Times**: Auto-updating daily prayer times from Aladhan API with Sofia, Bulgaria timezone
+- **Fundraising Campaigns**: Create and manage fundraising campaigns with progress tracking
+- **Khutbah Archive**: Browse, search, and listen to Friday sermons with audio/video/PDF support
 - **E-commerce Shop**: Order Islamic products with Bulgaria-wide delivery
 - **Donations**: One-time and recurring donations via Stripe
-- **Newsletter**: Subscribe to receive announcements and updates
-- **Order Tracking**: Track your orders with order number and email
-- **Multilingual**: Full support for Bulgarian, English, and Arabic (with RTL)
+- **Newsletter**: Subscribe to receive announcements and updates via email
+- **Order Tracking**: Track orders with order number and email verification
+- **Questions & Answers**: Community Q&A about Islam
+- **Multilingual**: Full support for Bulgarian (Български), English, and Arabic (العربية) with RTL support
 
-### Admin Features
+### 🛡️ Admin Features
+- **Campaign Management**: Create, edit, and monitor fundraising campaigns
 - **Product Management**: CRUD operations for products with image uploads
-- **Order Management**: Update order status, add tracking numbers
-- **Khutbah Management**: Upload audio, video, and PDF transcripts
-- **Donation Tracking**: View all donations and active subscriptions
-- **Newsletter Management**: Send announcements to subscribers
-- **Analytics Dashboard**: View key metrics and statistics
+- **Order Management**: Update order status, add tracking numbers, manage deliveries
+- **Khutbah Management**: Upload audio, video, and PDF transcripts of Friday sermons
+- **Donation Tracking**: View all donations and active subscriptions with Stripe integration
+- **Newsletter Management**: Send announcements to all subscribers via Brevo/Sendinblue
+- **Questions Moderation**: Approve, answer, and manage community questions
+- **Analytics Dashboard**: View key metrics, statistics, and insights (coming soon)
+- **User Management**: Manage admin users and permissions (coming soon)
 
-## Tech Stack
+---
+
+## 🛠️ Tech Stack
 
 ### Backend
-- Java 17
-- Spring Boot 3.2.1
-- Spring Security with JWT
-- Spring Data JPA
-- PostgreSQL
-- Stripe API for payments
-- JavaMailSender for emails
-- Lombok
+- **Java 17** - Programming language
+- **Spring Boot 3.2.1** - Application framework
+- **Spring Security** - Authentication & authorization with JWT
+- **Spring Data JPA** - Database ORM
+- **PostgreSQL 15** - Relational database
+- **Stripe API** - Payment processing
+- **Brevo (Sendinblue)** - Email service
+- **Maven** - Dependency management
+- **Lombok** - Boilerplate reduction
 
-### Frontend (To be implemented)
-- React 18
-- React Router
-- React i18next (multilingual)
-- Tailwind CSS (Islamic design)
-- Axios
-- React Player (for khutbah audio/video)
+### Frontend
+- **React 18** - UI library
+- **React Router** - Client-side routing
+- **React i18next** - Internationalization
+- **Tailwind CSS** - Utility-first CSS framework
+- **Axios** - HTTP client
+- **Stripe.js** - Payment integration
+- **React Player** - Media player for khutbah
+- **Vite** - Build tool and dev server
 
-## Prerequisites
+### DevOps & Deployment
+- **Docker & Docker Compose** - Containerization
+- **GitHub Actions** - CI/CD pipeline
+- **Railway** - Backend hosting (recommended)
+- **Vercel** - Frontend hosting (recommended)
+- **Nginx** - Reverse proxy (Docker deployment)
 
-- JDK 17 or higher
-- PostgreSQL 14 or higher
-- Maven 3.8 or higher
-- Stripe account (for donations)
-- Brevo account (for emails)
+---
 
-## Setup Instructions
+## 🚀 Getting Started
 
-### 1. Database Setup
+### Prerequisites
+
+- **JDK 17 or higher**
+- **Node.js 20 or higher**
+- **PostgreSQL 15 or higher**
+- **Maven 3.8 or higher**
+- **Stripe Account** (for payments)
+- **Brevo Account** (for emails, 300 emails/day free)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/masjid-studentski-grad.git
+   cd masjid-studentski-grad
+   ```
+
+2. **Backend Setup**
+   ```bash
+   cd backend
+   
+   # Copy environment template
+   cp .env.example .env
+   
+   # Edit .env with your configuration
+   nano .env
+   
+   # Setup database
+   psql -U postgres -f setup-database.sql
+   
+   # Build and run
+   mvn clean install
+   mvn spring-boot:run
+   ```
+   
+   Backend will run on `http://localhost:8080`
+
+3. **Frontend Setup**
+   ```bash
+   cd frontend
+   
+   # Copy environment template
+   cp .env.example .env
+   
+   # Edit .env with your configuration
+   nano .env
+   
+   # Install dependencies
+   npm install
+   
+   # Run development server
+   npm run dev
+   ```
+   
+   Frontend will run on `http://localhost:3000`
+
+4. **Create Admin User**
+   ```bash
+   cd backend
+   psql -U postgres -d masjid_db -f create-admin.sql
+   ```
+   
+   Default credentials: `admin@masjid.com` / `admin123` (change immediately!)
+
+### Using Docker (Alternative)
 
 ```bash
-# Create PostgreSQL database
-createdb masjid_db
+# Copy environment files
+cp .env.example .env
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 
-# Or using psql
-psql -U postgres
-CREATE DATABASE masjid_db;
+# Edit .env files with your configuration
+nano .env
+
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
 ```
 
-### 2. Environment Variables
+---
 
-Create a `.env` file or set environment variables:
+## 📦 Deployment
 
-```properties
-DATABASE_URL=jdbc:postgresql://localhost:5432/masjid_db
-DATABASE_USERNAME=postgres
-DATABASE_PASSWORD=yourpassword
+See the comprehensive [Deployment Guide](./DEPLOYMENT_GUIDE.md) for detailed instructions on deploying to:
 
-JWT_SECRET=YourSecureJWTSecretKeyHere
+- **Railway** (Backend) - Free tier with PostgreSQL
+- **Vercel** (Frontend) - Free tier with automatic HTTPS
+- **Render** (Alternative)
+- **Fly.io** (Alternative)
+- **VPS with Docker** (Self-hosted)
 
-STRIPE_API_KEY=sk_test_your_stripe_key
-STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
+### Quick Deploy Links
 
-MAIL_HOST=smtp-relay.brevo.com
-MAIL_PORT=587
-MAIL_USERNAME=your_brevo_email
-MAIL_PASSWORD=your_brevo_password
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/yourusername/masjid-studentski-grad)
 
-EMAIL_FROM=masjid@studentskigrad.com
-BREVO_API_KEY=your_brevo_api_key
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/masjid-studentski-grad)
 
-FRONTEND_URL=http://localhost:3000
+---
+
+## 📁 Project Structure
+
+```
+masjid-studentski-grad/
+├── backend/                          # Spring Boot backend
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── java/com/masjid/
+│   │   │   │   ├── config/          # Security, CORS, etc.
+│   │   │   │   ├── controller/      # REST API endpoints
+│   │   │   │   ├── model/           # JPA entities
+│   │   │   │   ├── repository/      # Database repositories
+│   │   │   │   ├── service/         # Business logic
+│   │   │   │   ├── security/        # JWT, authentication
+│   │   │   │   └── dto/             # Data transfer objects
+│   │   │   └── resources/
+│   │   │       └── application.yml  # Configuration
+│   │   └── test/                    # Unit & integration tests
+│   ├── Dockerfile
+│   ├── pom.xml                      # Maven dependencies
+│   └── .env.example
+│
+├── frontend/                         # React frontend
+│   ├── src/
+│   │   ├── api/                     # Axios API client
+│   │   ├── components/              # React components
+│   │   ├── pages/                   # Page components
+│   │   ├── context/                 # React context (auth)
+│   │   ├── hooks/                   # Custom React hooks
+│   │   ├── locales/                 # i18n translations
+│   │   ├── App.jsx                  # Main app component
+│   │   └── main.jsx                 # Entry point
+│   ├── public/                      # Static assets
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   ├── package.json
+│   ├── vite.config.js
+│   └── .env.example
+│
+├── docker-compose.yml               # Docker orchestration
+├── .github/workflows/ci-cd.yml     # GitHub Actions
+├── DEPLOYMENT_GUIDE.md             # Deployment instructions
+└── README.md                        # This file
 ```
 
-### 3. Build and Run Backend
+---
 
+## 📚 API Documentation
+
+### Base URL
+```
+Local: http://localhost:8080
+Production: https://your-backend.railway.app
+```
+
+### Authentication
 ```bash
-cd backend
+# Login
+POST /api/auth/login
+Content-Type: application/json
 
-# Build
-mvn clean install
+{
+  "email": "admin@masjid.com",
+  "password": "admin123"
+}
 
-# Run
-mvn spring-boot:run
+Response:
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "email": "admin@masjid.com",
+  "role": "ADMIN"
+}
 
-# Or run jar directly
-java -jar target/studentski-grad-0.0.1-SNAPSHOT.jar
+# Use token in subsequent requests
+Authorization: Bearer <token>
 ```
 
-The backend will start on `http://localhost:8080`
+### Key Endpoints
 
-### 4. Create Admin User
+#### Public Endpoints
+- `GET /api/prayer-times` - Get today's prayer times
+- `GET /api/products` - List all products
+- `GET /api/khutbahs` - List khutbahs
+- `GET /api/campaigns` - List active campaigns
+- `POST /api/donations` - Create donation
+- `POST /api/newsletter/subscribe` - Subscribe to newsletter
+- `POST /api/questions` - Submit question
 
-On first run, manually insert an admin user:
-
-```sql
-INSERT INTO admins (username, password, email, role, created_at, updated_at) 
-VALUES ('admin', '$2a$10$xK8WEU.vfPK6L8NeXvJrz.BRBxBZ.hJXQYCqm7VQ7yWQbH.mfY3wm', 
-        'admin@masjid.com', 'ADMIN', NOW(), NOW());
-```
-
-Default password is: `admin123` (bcrypt hash shown above)
-**⚠️ Change this immediately after first login!**
-
-### 5. Initial Prayer Times Fetch
-
-The system automatically fetches prayer times at 3 AM daily. To fetch manually:
-
-```bash
-curl -X POST http://localhost:8080/api/admin/prayer-times/fetch \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-## API Endpoints
-
-### Public Endpoints
-
-#### Prayer Times
-- `GET /api/prayer-times/today` - Get today's prayer times
-- `GET /api/prayer-times/date/{date}` - Get prayer times for specific date
-
-#### Products
-- `GET /api/products` - Get all active products
-- `GET /api/products/{id}` - Get product by ID
-- `GET /api/products/category/{category}` - Get products by category
-
-#### Orders
-- `POST /api/orders/create` - Create new order
-- `GET /api/orders/track?number={orderNumber}&email={email}` - Track order
-
-#### Donations
-- `POST /api/donations/create` - Create one-time donation
-- `POST /api/donations/recurring` - Create recurring donation
-- `POST /api/donations/webhook` - Stripe webhook handler
-
-#### Khutbahs
-- `GET /api/khutbahs/public` - Get all active khutbahs
-- `GET /api/khutbahs/public/{id}` - Get khutbah by ID
-- `GET /api/khutbahs/public/featured` - Get featured khutbahs
-
-#### Newsletter
-- `POST /api/subscribers/subscribe` - Subscribe to newsletter
-- `GET /api/subscribers/verify?token={token}` - Verify subscription
-- `POST /api/subscribers/unsubscribe` - Unsubscribe from newsletter
-
-### Admin Endpoints (Requires JWT)
-
-#### Authentication
-- `POST /api/auth/login` - Admin login
-
-#### Product Management
+#### Admin Endpoints (Require Authentication)
 - `POST /api/admin/products` - Create product
 - `PUT /api/admin/products/{id}` - Update product
 - `DELETE /api/admin/products/{id}` - Delete product
-- `POST /api/admin/products/upload-image` - Upload product image
+- `GET /api/admin/orders` - List all orders
+- `PUT /api/admin/orders/{id}` - Update order status
+- `POST /api/admin/campaigns` - Create campaign
+- `POST /api/admin/khutbahs` - Upload khutbah
+- `POST /api/admin/newsletter/send` - Send announcement
 
-#### Order Management
-- `GET /api/admin/orders` - Get all orders
-- `PUT /api/admin/orders/{id}/status` - Update order status
+For complete API documentation, see [API_ENDPOINTS.md](./API_ENDPOINTS.md)
 
-#### Khutbah Management
-- `POST /api/admin/khutbahs` - Create khutbah
-- `PUT /api/admin/khutbahs/{id}` - Update khutbah
-- `DELETE /api/admin/khutbahs/{id}` - Delete khutbah
-- `POST /api/admin/khutbahs/upload` - Upload media files
+---
 
-#### Donations
-- `GET /api/admin/donations` - Get all donations
-- `GET /api/admin/donations/stats` - Get donation statistics
+## 🤝 Contributing
 
-#### Newsletter
-- `GET /api/admin/subscribers` - Get all subscribers
-- `POST /api/admin/announcements/send` - Send announcement to subscribers
+Contributions are welcome! Please follow these steps:
 
-## Free Hosting Options
+1. **Fork the repository**
+2. **Create a feature branch**
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+3. **Commit your changes**
+   ```bash
+   git commit -m "Add some amazing feature"
+   ```
+4. **Push to the branch**
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+5. **Open a Pull Request**
 
-### Backend (Railway/Render Free Tier)
+### Development Guidelines
+
+- Follow existing code style
+- Write meaningful commit messages
+- Add tests for new features
+- Update documentation as needed
+- Test thoroughly before submitting PR
+
+---
+
+## 📝 Environment Variables
+
+### Backend (.env)
 ```bash
-# Railway
-railway login
-railway init
-railway up
-
-# Render
-# Connect GitHub repo and auto-deploy
+DATABASE_URL=jdbc:postgresql://localhost:5432/masjid_db
+DATABASE_USERNAME=postgres
+DATABASE_PASSWORD=your_password
+JWT_SECRET=your-long-secret-key-min-32-characters
+STRIPE_API_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+MAIL_HOST=smtp-relay.brevo.com
+MAIL_PORT=587
+MAIL_USERNAME=your_email
+MAIL_PASSWORD=your_smtp_password
+BREVO_API_KEY=your_api_key
+EMAIL_FROM=masjid@yourdomain.com
+FRONTEND_URL=http://localhost:3000
 ```
 
-### Frontend (Vercel/Netlify)
+### Frontend (.env)
 ```bash
-# Vercel
-vercel --prod
-
-# Netlify
-netlify deploy --prod
+VITE_API_URL=http://localhost:8080
+VITE_STRIPE_PK=pk_test_...
 ```
 
-### Database (Neon/Supabase Free Tier)
-- Neon: Free PostgreSQL with 10 GB storage
-- Supabase: Free PostgreSQL with 500 MB storage
+---
 
-### File Storage (Cloudinary Free Tier)
-- 10 GB storage
-- 25 credits/month
+## 🧪 Testing
 
-### Email (Brevo Free Tier)
-- 300 emails/day
-
-## Project Structure
-
-```
-backend/
-├── src/main/java/com/masjid/
-│   ├── config/             # Security, CORS configuration
-│   ├── controller/         # REST controllers
-│   ├── dto/                # Data Transfer Objects
-│   ├── model/              # JPA entities
-│   ├── repository/         # Spring Data repositories
-│   ├── security/           # JWT, authentication
-│   ├── service/            # Business logic
-│   └── MasjidApplication.java
-├── src/main/resources/
-│   └── application.yml     # Configuration
-└── pom.xml                 # Maven dependencies
-
-frontend/
-├── src/
-│   ├── components/         # React components
-│   ├── pages/              # Page components
-│   ├── i18n/               # Translation files
-│   ├── services/           # API services
-│   └── App.jsx
-└── package.json
-```
-
-## Payment Flow
-
-### One-time Donation
-1. User enters amount and email
-2. Backend creates Stripe PaymentIntent
-3. Frontend uses Stripe.js to collect payment
-4. On success, send thank you email
-
-### Recurring Donation
-1. User selects amount and interval (monthly/yearly)
-2. Backend creates Stripe Checkout Session
-3. User redirected to Stripe hosted page
-4. On success, create subscription and send confirmation
-
-### Product Orders
-1. User adds products to cart
-2. Guest checkout with email and delivery details
-3. Order created with status PENDING
-4. Admin updates status manually (PROCESSING → SHIPPED → DELIVERED)
-5. Emails sent at each status change
-
-## Security Notes
-
-1. **Change default admin password** immediately
-2. Use strong JWT secret (min 32 characters)
-3. Enable HTTPS in production
-4. Configure CORS for production frontend URL
-5. Keep Stripe webhook secret secure
-6. Use environment variables for all secrets
-
-## Development
-
-### Run in development mode with hot reload:
+### Backend Tests
 ```bash
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
-```
-
-### Run tests:
-```bash
+cd backend
 mvn test
 ```
 
-## Support
+### Frontend Tests
+```bash
+cd frontend
+npm run test
+```
 
-For issues and questions, please contact the mosque administration.
+### E2E Tests (Coming Soon)
+```bash
+npm run test:e2e
+```
 
-**JazakAllah Khair for using this system to support our mosque community!**
+---
+
+## 📈 Roadmap
+
+- [x] Prayer times integration
+- [x] Fundraising campaigns
+- [x] E-commerce system
+- [x] Donation system with Stripe
+- [x] Newsletter functionality
+- [x] Khutbah archive
+- [x] Questions & Answers
+- [x] Admin panel
+- [ ] Analytics dashboard
+- [ ] Mobile app (React Native)
+- [ ] Push notifications
+- [ ] Social media integration
+- [ ] Event calendar
+- [ ] Volunteer management
+- [ ] Quran integration
+
+---
+
+## 🐛 Known Issues
+
+See [Issues](../../issues) for a list of known issues and feature requests.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 👥 Authors
+
+- **Your Name** - *Initial work* - [YourGitHub](https://github.com/yourusername)
+
+---
+
+## 🙏 Acknowledgments
+
+- [Aladhan API](https://aladhan.com/prayer-times-api) for prayer times
+- [Stripe](https://stripe.com) for payment processing
+- [Brevo](https://brevo.com) for email service
+- All contributors and supporters
+
+---
+
+## 📞 Contact
+
+Project Link: [https://github.com/yourusername/masjid-studentski-grad](https://github.com/yourusername/masjid-studentski-grad)
+
+Website: [https://masjid-studentskigrad.com](https://masjid-studentskigrad.com)
+
+---
+
+<div align="center">
+
+Made with ❤️ for the Muslim community
+
+</div>
