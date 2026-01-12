@@ -44,7 +44,8 @@ server:
 # Application specific properties
 app:
   jwt:
-    secret: ${JWT_SECRET:MasjidStudentskiGradSecretKeyForJWTTokenGeneration2026}
+    # Read JWT secret from environment only. Do NOT embed a default secret in source.
+    secret: ${JWT_SECRET:}
     expiration: 86400000 # 24 hours
   
   stripe:
