@@ -1,0 +1,198 @@
+import { useEffect, useState, useCallback } from 'react';
+import axios from '../api/axios';
+
+/**
+ * Custom hook to manage prayer times data and next prayer calculation
+ * Automatically fetches prayer times and updates every minute
+ */
+const usePrayerTimes = () => {
+  const [prayerTimes, setPrayerTimes] = useState(null);
+  const [nextPrayer, setNextPrayer] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  /**
+   * Parse time string to minutes since midnight
+   * Handles formats: "6:15", "06:15", "6:15 AM", "06:15:00"
+   */
+  const parseTimeToMinutes = useCallback((timeStr) => {
+    try {
+      if (!timeStr || typeof timeStr !== 'string') return null;
+
+      // Normalize string: trim and keep first two tokens
+      let normalized = timeStr.trim().split(/\s+/).slice(0, 2).join(' ');
+
+      // Check for AM/PM
+      const ampmMatch = normalized.match(/(am|pm)$/i);
+      let isPM = false;
+      if (ampmMatch) {
+        isPM = ampmMatch[1].toLowerCase() === 'pm';
+        normalized = normalized.replace(/(am|pm)$/i, '').trim();
+      }
+
+      // Parse hours and minutes
+      const parts = normalized.split(':').map((p) => p.replace(/[^0-9]/g, ''));
+      if (parts.length < 2) return null;
+
+      let hours = parseInt(parts[0], 10);
+      const minutes = parseInt(parts[1], 10) || 0;
+
+      if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+
+      // Convert to 24-hour format if needed
+      if (ampmMatch) {
+        if (isPM && hours < 12) hours += 12;
+        if (!isPM && hours === 12) hours = 0;
+      }
+
+      // Normalize to 0-23 range
+      hours = ((hours % 24) + 24) % 24;
+      return hours * 60 + minutes;
+    } catch (e) {
+      console.error('Error parsing time:', timeStr, e);
+      return null;
+    }
+  }, []);
+
+  /**
+   * Format minutes since midnight to HH:MM string
+   */
+  const formatMinutesAsTime = useCallback((totalMinutes) => {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  }, []);
+
+  /**
+   * Calculate the next prayer based on current time
+   */
+  const calculateNextPrayer = useCallback((times) => {
+    if (!times) {
+      setNextPrayer(null);
+      return;
+    }
+
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    const prayers = [
+      { name: 'fajr', time: times.fajr },
+      { name: 'dhuhr', time: times.dhuhr },
+      { name: 'asr', time: times.asr },
+      { name: 'maghrib', time: times.maghrib },
+      { name: 'isha', time: times.isha }
+    ];
+
+    // Find the next prayer
+    for (const prayer of prayers) {
+      const prayerMinutes = parseTimeToMinutes(prayer.time);
+      if (prayerMinutes === null) continue;
+
+      if (prayerMinutes > currentMinutes) {
+        const minutesUntil = prayerMinutes - currentMinutes;
+        const hoursLeft = Math.floor(minutesUntil / 60);
+        const minutesLeft = minutesUntil % 60;
+
+        setNextPrayer({
+          name: prayer.name,
+          time: formatMinutesAsTime(prayerMinutes),
+          timeLeft: `${hoursLeft}h ${minutesLeft}m`,
+          minutesUntil
+        });
+        return;
+      }
+    }
+
+    // If no prayer found today, next is Fajr tomorrow
+    const fajrMinutes = parseTimeToMinutes(prayers[0].time) || 360; // Default 06:00
+    const minutesUntilTomorrow = (24 * 60 - currentMinutes) + fajrMinutes;
+    const hoursLeft = Math.floor(minutesUntilTomorrow / 60);
+    const minutesLeft = minutesUntilTomorrow % 60;
+
+    setNextPrayer({
+      name: 'fajr',
+      time: formatMinutesAsTime(fajrMinutes),
+      timeLeft: `${hoursLeft}h ${minutesLeft}m`,
+      minutesUntil: minutesUntilTomorrow,
+      isTomorrow: true
+    });
+  }, [parseTimeToMinutes, formatMinutesAsTime]);
+
+  /**
+   * Fetch prayer times from backend, with fallback to direct API call
+   */
+  const fetchPrayerTimes = useCallback(async () => {
+    try {
+      setError(null);
+      const response = await axios.get('/api/prayer-times/today');
+      let data = response.data;
+
+      // Check if backend returned fallback data (Rajab 1447 indicates fallback)
+      const isFallback = data?.hijriDate?.includes('Rajab 1447');
+      
+      if (isFallback) {
+        try {
+          // Try to fetch directly from Aladhan API
+          const directResponse = await fetch(
+            'https://api.aladhan.com/v1/timingsByCity?city=Sofia&country=Bulgaria&method=2'
+          );
+          
+          if (directResponse.ok) {
+            const json = await directResponse.json();
+            if (json?.data?.timings) {
+              data = {
+                fajr: json.data.timings.Fajr.split(' ')[0],
+                sunrise: json.data.timings.Sunrise.split(' ')[0],
+                dhuhr: json.data.timings.Dhuhr.split(' ')[0],
+                asr: json.data.timings.Asr.split(' ')[0],
+                maghrib: json.data.timings.Maghrib.split(' ')[0],
+                isha: json.data.timings.Isha.split(' ')[0],
+                hijriDate: `${json.data.date?.hijri?.day} ${json.data.date?.hijri?.month?.en} ${json.data.date?.hijri?.year}`
+              };
+            }
+          }
+        } catch (fallbackError) {
+          console.warn('Failed to fetch from direct API, using backend fallback:', fallbackError);
+        }
+      }
+
+      setPrayerTimes(data);
+      calculateNextPrayer(data);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching prayer times:', err);
+      setError(err.message || 'Failed to fetch prayer times');
+      setLoading(false);
+    }
+  }, [calculateNextPrayer]);
+
+  // Initial fetch and setup interval for updates
+  useEffect(() => {
+    fetchPrayerTimes();
+    
+    // Update every minute
+    const interval = setInterval(() => {
+      if (prayerTimes) {
+        calculateNextPrayer(prayerTimes);
+      }
+    }, 60000);
+
+    // Refetch prayer times every hour
+    const refetchInterval = setInterval(fetchPrayerTimes, 3600000);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(refetchInterval);
+    };
+  }, [fetchPrayerTimes, prayerTimes, calculateNextPrayer]);
+
+  return {
+    prayerTimes,
+    nextPrayer,
+    loading,
+    error,
+    refetch: fetchPrayerTimes
+  };
+};
+
+export default usePrayerTimes;

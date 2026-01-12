@@ -1,0 +1,109 @@
+{
+  "nav": {
+    "home": "Home",
+    "prayerTimes": "Prayer Times",
+    "khutbahs": "Khutbahs",
+    "questions": "Questions",
+    "shop": "Shop",
+    "donate": "Donate",
+    "about": "About",
+    "admin": "Admin"
+  },
+  "hero": {
+    "title": "Welcome to Masjid Studentski Grad",
+    "subtitle": "A community center for worship, learning, and brotherhood",
+    "nextPrayer": "Next Prayer",
+    "donate": "Donate Now",
+    "subscribe": "Subscribe to Newsletter"
+  },
+  "prayerTimes": {
+    "title": "Prayer Times",
+    "fajr": "Fajr",
+    "sunrise": "Sunrise",
+    "dhuhr": "Dhuhr",
+    "asr": "Asr",
+    "maghrib": "Maghrib",
+    "isha": "Isha",
+    "hijriDate": "Hijri Date",
+    "in": "in",
+    "tomorrow": "Tomorrow"
+  },
+  "khutbahs": {
+    "title": "Friday Khutbahs",
+    "featured": "Featured Khutbahs",
+    "viewAll": "View All",
+    "speaker": "Speaker",
+    "date": "Date",
+    "listen": "Listen",
+    "watch": "Watch",
+    "downloadPdf": "Download PDF"
+  },
+  "shop": {
+    "title": "Islamic Products",
+    "addToCart": "Add to Cart",
+    "cart": "Cart",
+    "checkout": "Checkout",
+    "outOfStock": "Out of Stock",
+    "price": "Price",
+    "category": "Category"
+  },
+  "donate": {
+    "title": "Support Our Mosque",
+    "oneTime": "One-Time Donation",
+    "recurring": "Monthly Donation",
+    "amount": "Amount",
+    "customAmount": "Custom Amount",
+    "yourName": "Your Name",
+    "yourEmail": "Your Email",
+    "message": "Message (Optional)",
+    "submit": "Submit Donation",
+    "thankYou": "Thank you for your generous donation!"
+  },
+  "newsletter": {
+    "title": "Stay Updated",
+    "subtitle": "Subscribe to receive the latest news and announcements",
+    "emailPlaceholder": "Your email address",
+    "subscribe": "Subscribe",
+    "language": "Preferred Language",
+    "success": "Please check your email to verify your subscription"
+  },
+  "order": {
+    "trackOrder": "Track Your Order",
+    "orderNumber": "Order Number",
+    "email": "Email Address",
+    "track": "Track",
+    "status": "Order Status",
+    "pending": "Pending",
+    "processing": "Processing",
+    "shipped": "Shipped",
+    "delivered": "Delivered",
+    "trackingNumber": "Tracking Number"
+  },
+  "questions": {
+    "title": "Ask Questions Anonymously",
+    "description": "Submit your questions anonymously and get answers from our scholars",
+    "askQuestion": "Ask a Question",
+    "placeholder": "Type your question here...",
+    "anonymous": "✓ Your question will be submitted anonymously",
+    "submit": "Submit Question",
+    "submitting": "Submitting...",
+    "submitSuccess": "Your question has been submitted successfully. It will be answered soon!",
+    "submitError": "Failed to submit question. Please try again.",
+    "emptyQuestion": "Please enter a question",
+    "previousQuestions": "Previously Answered Questions",
+    "noQuestions": "No questions have been answered yet.",
+    "answeredOn": "Answered on"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous"
+  }
+}

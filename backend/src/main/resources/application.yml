@@ -1,0 +1,68 @@
+spring:
+  application:
+    name: masjid-studentski-grad
+  
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/masjid_db}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 50MB
+  
+  mail:
+    host: ${MAIL_HOST:smtp-relay.brevo.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: always
+
+# Application specific properties
+app:
+  jwt:
+    secret: ${JWT_SECRET:MasjidStudentskiGradSecretKeyForJWTTokenGeneration2026}
+    expiration: 86400000 # 24 hours
+  
+  stripe:
+    api-key: ${STRIPE_API_KEY:}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+  
+  prayer-times:
+    api-url: https://api.aladhan.com/v1/timingsByCity
+    backup-api-url: https://muslimsalat.com
+    city: Sofia
+    country: Bulgaria
+    method: 2 # Islamic Society of North America
+  
+  file-storage:
+    upload-dir: ${UPLOAD_DIR:./uploads}
+  
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+  
+  email:
+    from: ${EMAIL_FROM:masjid@studentskigrad.com}
+    brevo-api-key: ${BREVO_API_KEY:}
