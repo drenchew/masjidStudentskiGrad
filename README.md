@@ -80,16 +80,47 @@ A comprehensive full-stack mosque website with trilingual support (Bulgarian, En
 
 ### DevOps & Deployment
 - **Docker & Docker Compose** - Containerization
-- **GitHub Actions** - CI/CD pipeline
-- **Railway** - Backend hosting (recommended)
-- **Vercel** - Frontend hosting (recommended)
+- **Render** - Cloud hosting (Docker support)
+- **Railway** - Alternative backend hosting
+- **Vercel** - Alternative frontend hosting
 - **Nginx** - Reverse proxy (Docker deployment)
 
 ---
 
 ## 🚀 Getting Started
 
-### Prerequisites
+### Quick Start with Docker (Recommended)
+
+The fastest way to get started:
+
+```bash
+# 1. Clone repository
+git clone https://github.com/yourusername/masjid-studentski-grad.git
+cd masjid-studentski-grad
+
+# 2. Create .env file
+cp .env.example .env
+# Edit .env with your credentials
+
+# 3. Start with Docker Compose
+docker-compose up -d
+
+# 4. Access application
+# Frontend: http://localhost:3000
+# Backend: http://localhost:8080
+```
+
+**📚 Detailed Docker guides:**
+- [DOCKER_README.md](./DOCKER_README.md) - Complete Docker documentation
+- [QUICK_DEPLOY_RENDER.md](./QUICK_DEPLOY_RENDER.md) - 5-minute Render deployment
+- [RENDER_DOCKER_DEPLOYMENT.md](./RENDER_DOCKER_DEPLOYMENT.md) - Comprehensive Render guide
+
+### Manual Setup (Development)
+
+<details>
+<summary>Click to expand manual installation steps</summary>
+
+#### Prerequisites
 
 - **JDK 17 or higher**
 - **Node.js 20 or higher**
@@ -98,7 +129,7 @@ A comprehensive full-stack mosque website with trilingual support (Bulgarian, En
 - **Stripe Account** (for payments)
 - **Brevo Account** (for emails, 300 emails/day free)
 
-### Installation
+#### Installation
 
 1. **Clone the repository**
    ```bash
@@ -153,44 +184,43 @@ A comprehensive full-stack mosque website with trilingual support (Bulgarian, En
    
    Default credentials: `admin@masjid.com` / `admin123` (change immediately!)
 
-### Using Docker (Alternative)
-
-```bash
-# Copy environment files
-cp .env.example .env
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
-
-# Edit .env files with your configuration
-nano .env
-
-# Start all services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop all services
-docker-compose down
-```
+</details>
 
 ---
 
 ## 📦 Deployment
 
-See the comprehensive [Deployment Guide](./DEPLOYMENT_GUIDE.md) for detailed instructions on deploying to:
+### 🐳 Docker Deployment (Recommended)
 
+Deploy to **Render** using Docker containers:
+
+**⚡ Quick Deploy (5 minutes):**
+- [QUICK_DEPLOY_RENDER.md](./QUICK_DEPLOY_RENDER.md) - Fast track guide
+
+**📚 Complete Documentation:**
+- [RENDER_DOCKER_DEPLOYMENT.md](./RENDER_DOCKER_DEPLOYMENT.md) - Comprehensive Render guide
+- [DOCKER_README.md](./DOCKER_README.md) - Docker setup and configuration
+
+**Test Locally:**
+```bash
+# Interactive test menu
+./docker-test.sh
+
+# Or start full stack
+docker-compose up -d
+```
+
+### 🌐 Alternative Deployment Options
+
+See [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) for:
 - **Railway** (Backend) - Free tier with PostgreSQL
-- **Vercel** (Frontend) - Free tier with automatic HTTPS
-- **Render** (Alternative)
+- **Vercel** (Frontend) - Free tier with automatic HTTPS  
 - **Fly.io** (Alternative)
 - **VPS with Docker** (Self-hosted)
 
-### Quick Deploy Links
+### Quick Deploy Buttons
 
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/yourusername/masjid-studentski-grad)
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/masjid-studentski-grad)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/yourusername/masjid-studentski-grad)
 
 ---
 

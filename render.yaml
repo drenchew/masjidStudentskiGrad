@@ -13,27 +13,23 @@ services:
         value: postgres
       - key: POSTGRES_PASSWORD
         generateValue: true
-    # NOTE: persistent disks are not supported on free tier services.
-    # If you need persistent storage on Render, upgrade the plan and
-    # add a disk section here.
+    # Disk for persistent storage (only on paid plans)
+    # disk:
+    #   name: postgres-data
+    #   mountPath: /var/lib/postgresql/data
+    #   sizeGB: 10
 
-  # Backend Spring Boot Application
+  # Backend Spring Boot Application (Docker)
   - type: web
     name: masjid-backend
     env: docker
     plan: free
-    # Use the backend Dockerfile for build (Render will build the image).
     dockerfilePath: backend/Dockerfile
-    # startCommand must not be provided for docker services; Render will
-    # run the container using the Dockerfile's CMD. If you need a custom
-    # runtime command, set it in the Dockerfile instead.
+    dockerContext: backend
     envVars:
       - key: DATABASE_URL
-        # Can't reference connectionString property from a pserv in the
-        # free-tier blueprint validation. Set this manually in the Render
-        # dashboard to the connection string for the managed Postgres
-        # (or construct it from host/port/user/password provided by the DB
-        # service).
+        # Set this manually in Render dashboard after postgres is created
+        # Format: jdbc:postgresql://masjid-postgres:5432/masjid_db
         sync: false
       - key: DATABASE_USERNAME
         value: postgres
@@ -61,28 +57,31 @@ services:
       - key: BREVO_API_KEY
         sync: false
       - key: FRONTEND_URL
-        fromService:
-          type: web
-          name: masjid-frontend
-          property: host
+        value: https://masjid-frontend.onrender.com
       - key: UPLOAD_DIR
-        value: /opt/render/project/src/uploads
+        value: /app/uploads
     healthCheckPath: /actuator/health
-    # NOTE: Uploads/persistent disk not configured because free tier services
-    # do not support disks. If you require uploads to persist across
-    # deployments, enable an external storage (S3, Cloud Storage) or upgrade
-    # the Render plan and add a disk here.
+    # Disk for file uploads (only on paid plans)
+    # disk:
+    #   name: uploads
+    #   mountPath: /app/uploads
+    #   sizeGB: 5
 
-  # Frontend React Application
+  # Frontend React Application (Docker with Nginx)
   - type: web
     name: masjid-frontend
     env: docker
     plan: free
     dockerfilePath: frontend/Dockerfile
+    dockerContext: frontend
+    dockerCommand: nginx -g "daemon off;"
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
+        value: https://masjid-backend.onrender.com
+      - key: VITE_STRIPE_PK
+        sync: false
+    # Frontend routes through nginx, health check on root
+    healthCheckPath: /
           name: masjid-backend
           property: host
       - key: VITE_STRIPE_PK

@@ -1,0 +1,63 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+LICENSE
+CONTRIBUTING.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# IDE
+.vscode/
+.idea/
+*.iml
+*.iws
+
+# Backend ignores
+backend/target/
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+backend/*.iml
+backend/.env
+backend/.env.*
+
+# Frontend ignores
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.*
+frontend/.vite/
+frontend/coverage/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Uploads (use persistent storage instead)
+uploads/
+
+# Scripts
+*.sh
+setup.sh
+cleanup-for-production.sh
+push-to-github.sh
+QUICK_START_DEPLOY.sh
+
+# Other
+.env
+.env.*
+*.bak
+*.tmp
