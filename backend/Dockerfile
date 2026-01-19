@@ -25,5 +25,6 @@ COPY --from=build /app/target/studentski-grad-*.jar app.jar
 # Expose port
 EXPOSE 8080
 
-# Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Run the application, honoring $PORT provided by Render (falls back to 8080)
+# Use sh -c so environment variable expansion works in the ENTRYPOINT.
+ENTRYPOINT ["sh", "-c", "exec java -Dserver.port=${PORT:-8080} -jar app.jar"]
