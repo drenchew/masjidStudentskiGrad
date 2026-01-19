@@ -1,20 +1,43 @@
-# Render Blueprint for Masjid Studentski Grad
-# This file defines all services for automatic deployment
-
 services:
-  # Backend - Spring Boot API
+  # PostgreSQL Database
+  - type: pserv
+    name: masjid-postgres
+    env: docker
+    plan: free
+    image:
+      url: docker.io/postgres:15-alpine
+    envVars:
+      - key: POSTGRES_DB
+        value: masjid_db
+      - key: POSTGRES_USER
+        value: postgres
+      - key: POSTGRES_PASSWORD
+        generateValue: true
+    disk:
+      name: masjid-db-data
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 1
+
+  # Backend Spring Boot Application
   - type: web
     name: masjid-backend
+    env: java
     plan: free
-    runtime: docker
-    dockerfilePath: backend/Dockerfile
-    region: frankfurt  # Choose closest region
-    healthCheckPath: /api/prayer-times
+    buildCommand: cd backend && mvn clean package -DskipTests
+    startCommand: cd backend && java -Dserver.port=$PORT -jar target/*.jar
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: masjid-db
+        fromService:
+          type: pserv
+          name: masjid-postgres
           property: connectionString
+      - key: DATABASE_USERNAME
+        value: postgres
+      - key: DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: masjid-postgres
+          envVarKey: POSTGRES_PASSWORD
       - key: JWT_SECRET
         generateValue: true
       - key: STRIPE_API_KEY
@@ -35,20 +58,32 @@ services:
         sync: false
       - key: FRONTEND_URL
         fromService:
-          name: masjid-frontend
           type: web
+          name: masjid-frontend
           property: host
       - key: UPLOAD_DIR
-        value: /var/data/uploads
-      - key: PORT
-        value: 8080
+        value: /opt/render/project/src/uploads
+    healthCheckPath: /actuator/health
+    disk:
+      name: masjid-uploads
+      mountPath: /opt/render/project/src/uploads
+      sizeGB: 1
 
-  # Frontend - React + Vite
-  - type: static
+  # Frontend React Application (Static Site)
+  - type: web
     name: masjid-frontend
+    env: node
     plan: free
     buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: frontend/dist
+    startCommand: cd frontend && npx serve -s dist -l $PORT
+    pullRequestPreviewsEnabled: true
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
     routes:
       - type: rewrite
         source: /*
@@ -56,15 +91,8 @@ services:
     envVars:
       - key: VITE_API_URL
         fromService:
-          name: masjid-backend
           type: web
+          name: masjid-backend
           property: host
       - key: VITE_STRIPE_PK
         sync: false
-
-# Database - PostgreSQL
-databases:
-  - name: masjid-db
-    plan: free
-    databaseName: masjid_db
-    user: masjid_user
