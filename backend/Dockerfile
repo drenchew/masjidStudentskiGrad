@@ -41,34 +41,57 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 # failures caused by an unsupported URL format.
 RUN cat > /app/docker-entrypoint.sh << 'EOF'
 #!/bin/sh
-# Normalize DATABASE_URL so Spring Boot gets a JDBC URL
-# If Render supplies a URL like "postgres://user:pass@host:5432/db",
-# extract credentials into DATABASE_USERNAME/DATABASE_PASSWORD and
-# convert the URL to "jdbc:postgresql://host:5432/db"
-if [ -n "$DATABASE_URL" ]; then
-    case "$DATABASE_URL" in
-        postgresql://*|postgres://*)
-            tail="${DATABASE_URL#*://}"
-            if echo "$tail" | grep -q '@'; then
-                creds="${tail%%@*}"
-                hostpart="${tail#*@}"
-                user="${creds%%:*}"
-                pass="${creds#*:}"
-                export DATABASE_USERNAME="$user"
-                export DATABASE_PASSWORD="$pass"
-                export DATABASE_URL="jdbc:postgresql://$hostpart"
-                echo "Normalized DATABASE_URL to JDBC form and extracted credentials"
-            else
-                export DATABASE_URL="jdbc:postgresql://$tail"
-                echo "Normalized DATABASE_URL to JDBC form"
-            fi
-            ;;
-        *)
-            # already JDBC or other scheme
-            ;;
-    esac
-fi
+# Entrypoint: normalize DB env vars so Spring Boot always receives a JDBC URL
+# and separate username/password env vars. Handles multiple provider conventions.
 
+normalize_and_extract() {
+    VAR_NAME="$1"
+    VAL="$(eval echo \"\$$VAR_NAME\")"
+    if [ -z "$VAL" ]; then
+        return
+    fi
+
+    # Only act on postgres scheme without jdbc: prefix
+    if echo "$VAL" | grep -qiE '^postgres(ql)?://'; then
+        tail="${VAL#*://}"
+        if echo "$tail" | grep -q '@'; then
+            creds="${tail%%@*}"
+            hostpart="${tail#*@}"
+            user="${creds%%:*}"
+            pass="${creds#*:}"
+
+            # Export credentials if not already present
+            if [ -z "$(printenv DATABASE_USERNAME)" ]; then
+                export DATABASE_USERNAME="$user"
+            fi
+            if [ -z "$(printenv DATABASE_PASSWORD)" ]; then
+                export DATABASE_PASSWORD="$pass"
+            fi
+            if [ -z "$(printenv SPRING_DATASOURCE_USERNAME)" ]; then
+                export SPRING_DATASOURCE_USERNAME="$user"
+            fi
+            if [ -z "$(printenv SPRING_DATASOURCE_PASSWORD)" ]; then
+                export SPRING_DATASOURCE_PASSWORD="$pass"
+            fi
+
+            JDBC_URL="jdbc:postgresql://$hostpart"
+            export DATABASE_URL="$JDBC_URL"
+            export SPRING_DATASOURCE_URL="$JDBC_URL"
+            echo "Normalized $VAR_NAME to JDBC form and extracted credentials"
+        else
+            JDBC_URL="jdbc:postgresql://$tail"
+            export DATABASE_URL="$JDBC_URL"
+            export SPRING_DATASOURCE_URL="$JDBC_URL"
+            echo "Normalized $VAR_NAME to JDBC form"
+        fi
+    fi
+}
+
+# Normalize common env vars that may contain the raw postgres URL
+normalize_and_extract DATABASE_URL
+normalize_and_extract SPRING_DATASOURCE_URL
+
+# Start the application
 exec java -Xmx450m -Xms256m -Dserver.port=${PORT:-8080} -jar /app/app.jar
 EOF
 RUN chmod +x /app/docker-entrypoint.sh
