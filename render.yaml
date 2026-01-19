@@ -13,24 +13,26 @@ services:
         value: postgres
       - key: POSTGRES_PASSWORD
         generateValue: true
-    disk:
-      name: masjid-db-data
-      mountPath: /var/lib/postgresql/data
-      sizeGB: 1
+    # NOTE: persistent disks are not supported on free tier services.
+    # If you need persistent storage on Render, upgrade the plan and
+    # add a disk section here.
 
   # Backend Spring Boot Application
   - type: web
     name: masjid-backend
-    env: java
+    env: docker
     plan: free
-    buildCommand: cd backend && mvn clean package -DskipTests
+    # Use the backend Dockerfile for build (Render will build the image).
+    dockerfilePath: backend/Dockerfile
     startCommand: cd backend && java -Dserver.port=$PORT -jar target/*.jar
     envVars:
       - key: DATABASE_URL
-        fromService:
-          type: pserv
-          name: masjid-postgres
-          property: connectionString
+        # Can't reference connectionString property from a pserv in the
+        # free-tier blueprint validation. Set this manually in the Render
+        # dashboard to the connection string for the managed Postgres
+        # (or construct it from host/port/user/password provided by the DB
+        # service).
+        sync: false
       - key: DATABASE_USERNAME
         value: postgres
       - key: DATABASE_PASSWORD
@@ -64,18 +66,20 @@ services:
       - key: UPLOAD_DIR
         value: /opt/render/project/src/uploads
     healthCheckPath: /actuator/health
-    disk:
-      name: masjid-uploads
-      mountPath: /opt/render/project/src/uploads
-      sizeGB: 1
+    # NOTE: Uploads/persistent disk not configured because free tier services
+    # do not support disks. If you require uploads to persist across
+    # deployments, enable an external storage (S3, Cloud Storage) or upgrade
+    # the Render plan and add a disk here.
 
   # Frontend React Application (Static Site)
   - type: web
     name: masjid-frontend
-    env: node
+    env: static
     plan: free
     buildCommand: cd frontend && npm install && npm run build
-    startCommand: cd frontend && npx serve -s dist -l $PORT
+    # Static environment serves the built files directly. Use staticPublishPath
+    # so Render treats this as a static site and allows headers/routes.
+    staticPublishPath: frontend/dist
     pullRequestPreviewsEnabled: true
     headers:
       - path: /*
