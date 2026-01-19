@@ -39,19 +39,39 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 # provides a `postgres://`/`postgresql://` URL so Spring Boot gets a proper
 # JDBC URL (jdbc:postgresql://...). This prevents Hikari initialization
 # failures caused by an unsupported URL format.
-RUN printf '%s\n' "#!/bin/sh" \
-    "# Normalize DATABASE_URL so Spring Boot gets a JDBC URL" \
-    "if [ -n \"$DATABASE_URL\" ]; then" \
-    "  case \"$DATABASE_URL\" in" \
-    "    postgresql://*|postgres://*)" \
-    "      # strip scheme and re-prefix with jdbc:postgresql://" \
-    "      tail=\"${DATABASE_URL#*://}\"" \
-    "      export DATABASE_URL=\"jdbc:postgresql://$tail\"" \
-    "      ;;" \
-    "  esac" \
-    "fi" \
-    "exec java -Xmx450m -Xms256m -Dserver.port=${PORT:-8080} -jar /app/app.jar" \
-    > /app/docker-entrypoint.sh && chmod +x /app/docker-entrypoint.sh
+RUN cat > /app/docker-entrypoint.sh << 'EOF'
+#!/bin/sh
+# Normalize DATABASE_URL so Spring Boot gets a JDBC URL
+# If Render supplies a URL like "postgres://user:pass@host:5432/db",
+# extract credentials into DATABASE_USERNAME/DATABASE_PASSWORD and
+# convert the URL to "jdbc:postgresql://host:5432/db"
+if [ -n "$DATABASE_URL" ]; then
+    case "$DATABASE_URL" in
+        postgresql://*|postgres://*)
+            tail="${DATABASE_URL#*://}"
+            if echo "$tail" | grep -q '@'; then
+                creds="${tail%%@*}"
+                hostpart="${tail#*@}"
+                user="${creds%%:*}"
+                pass="${creds#*:}"
+                export DATABASE_USERNAME="$user"
+                export DATABASE_PASSWORD="$pass"
+                export DATABASE_URL="jdbc:postgresql://$hostpart"
+                echo "Normalized DATABASE_URL to JDBC form and extracted credentials"
+            else
+                export DATABASE_URL="jdbc:postgresql://$tail"
+                echo "Normalized DATABASE_URL to JDBC form"
+            fi
+            ;;
+        *)
+            # already JDBC or other scheme
+            ;;
+    esac
+fi
+
+exec java -Xmx450m -Xms256m -Dserver.port=${PORT:-8080} -jar /app/app.jar
+EOF
+RUN chmod +x /app/docker-entrypoint.sh
 
 # Use the entrypoint script
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
