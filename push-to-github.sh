@@ -128,8 +128,7 @@ repo_name=${repo_name:-masjid-studentski-grad}
 
 echo ""
 echo "🔗 Adding remote origin..."
-git remote remove origin 2>/dev/null || true
-git remote add origin "https://github.com/${github_username}/${repo_name}.git"
+git remote remove origin 2>/dev/null || tr
 
 echo ""
 echo "📤 Pushing to GitHub..."

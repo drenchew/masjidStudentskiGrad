@@ -90,11 +90,20 @@ normalize_and_extract() {
 # Normalize common env vars that may contain the raw postgres URL
 normalize_and_extract DATABASE_URL
 normalize_and_extract SPRING_DATASOURCE_URL
+normalize_and_extract JDBC_DATABASE_URL
+normalize_and_extract POSTGRES_URL
+normalize_and_extract CONNECTION_STRING
 # Build extra Java system properties from normalized env vars so Spring Boot
 # picks them up even if the environment or Render's start command behaves oddly.
 EXTRA_OPTS=""
 if [ -n "$SPRING_DATASOURCE_URL" ]; then
     EXTRA_OPTS="$EXTRA_OPTS -Dspring.datasource.url=$SPRING_DATASOURCE_URL"
+elif [ -n "$JDBC_DATABASE_URL" ]; then
+    EXTRA_OPTS="$EXTRA_OPTS -Dspring.datasource.url=$JDBC_DATABASE_URL"
+elif [ -n "$POSTGRES_URL" ]; then
+    EXTRA_OPTS="$EXTRA_OPTS -Dspring.datasource.url=$POSTGRES_URL"
+elif [ -n "$CONNECTION_STRING" ]; then
+    EXTRA_OPTS="$EXTRA_OPTS -Dspring.datasource.url=$CONNECTION_STRING"
 elif [ -n "$DATABASE_URL" ]; then
     EXTRA_OPTS="$EXTRA_OPTS -Dspring.datasource.url=$DATABASE_URL"
 fi

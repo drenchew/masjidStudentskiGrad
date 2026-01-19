@@ -67,3 +67,12 @@ app:
   email:
     from: ${EMAIL_FROM:masjid@studentskigrad.com}
     brevo-api-key: ${BREVO_API_KEY:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: NEVER
