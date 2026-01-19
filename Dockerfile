@@ -11,7 +11,8 @@ WORKDIR /frontend
 COPY frontend/package*.json ./
 
 # Install dependencies (include dev dependencies for build tools like Vite)
-RUN npm ci
+# Using npm install instead of npm ci for compatibility
+RUN npm install
 
 # Copy frontend source
 COPY frontend/ ./
