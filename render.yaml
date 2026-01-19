@@ -6,9 +6,9 @@ services:
   - type: web
     name: masjid-backend
     plan: free
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
     region: frankfurt  # Choose closest region
-    buildCommand: cd backend && mvn clean package -DskipTests
-    startCommand: java -jar backend/target/studentski-grad-*.jar
     healthCheckPath: /api/prayer-times
     envVars:
       - key: DATABASE_URL
