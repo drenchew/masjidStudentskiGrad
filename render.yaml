@@ -5,7 +5,6 @@ services:
   # Backend - Spring Boot API
   - type: web
     name: masjid-backend
-    runtime: java
     plan: free
     region: frankfurt  # Choose closest region
     buildCommand: cd backend && mvn clean package -DskipTests
@@ -18,7 +17,6 @@ services:
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
-        sync: false
       - key: STRIPE_API_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
@@ -50,7 +48,6 @@ services:
     name: masjid-frontend
     runtime: static
     plan: free
-    region: frankfurt
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
     routes:
