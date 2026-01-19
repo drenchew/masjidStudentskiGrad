@@ -10,8 +10,8 @@ WORKDIR /frontend
 # Copy frontend package files
 COPY frontend/package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (include dev dependencies for build tools like Vite)
+RUN npm ci
 
 # Copy frontend source
 COPY frontend/ ./
@@ -37,8 +37,8 @@ FROM eclipse-temurin:17-jre-alpine
 
 WORKDIR /app
 
-# Install nginx for serving frontend (lightweight)
-RUN apk add --no-cache nginx
+# Install nginx and wget for serving frontend and health checks
+RUN apk add --no-cache nginx wget
 
 # Create necessary directories
 RUN mkdir -p /app/uploads /run/nginx /var/log/nginx /usr/share/nginx/html

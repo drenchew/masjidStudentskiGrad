@@ -16,6 +16,9 @@ FROM eclipse-temurin:17-jre-alpine
 
 WORKDIR /app
 
+# Install wget for health checks
+RUN apk add --no-cache wget
+
 # Create uploads directory
 RUN mkdir -p /app/uploads
 
