@@ -24,7 +24,9 @@ services:
     plan: free
     # Use the backend Dockerfile for build (Render will build the image).
     dockerfilePath: backend/Dockerfile
-    startCommand: cd backend && java -Dserver.port=$PORT -jar target/*.jar
+    # startCommand must not be provided for docker services; Render will
+    # run the container using the Dockerfile's CMD. If you need a custom
+    # runtime command, set it in the Dockerfile instead.
     envVars:
       - key: DATABASE_URL
         # Can't reference connectionString property from a pserv in the
