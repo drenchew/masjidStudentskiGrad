@@ -90,9 +90,38 @@ normalize_and_extract() {
 # Normalize common env vars that may contain the raw postgres URL
 normalize_and_extract DATABASE_URL
 normalize_and_extract SPRING_DATASOURCE_URL
+# Build extra Java system properties from normalized env vars so Spring Boot
+# picks them up even if the environment or Render's start command behaves oddly.
+EXTRA_OPTS=""
+if [ -n "$SPRING_DATASOURCE_URL" ]; then
+    EXTRA_OPTS="$EXTRA_OPTS -Dspring.datasource.url=$SPRING_DATASOURCE_URL"
+elif [ -n "$DATABASE_URL" ]; then
+    EXTRA_OPTS="$EXTRA_OPTS -Dspring.datasource.url=$DATABASE_URL"
+fi
+if [ -n "$SPRING_DATASOURCE_USERNAME" ]; then
+    EXTRA_OPTS="$EXTRA_OPTS -Dspring.datasource.username=$SPRING_DATASOURCE_USERNAME"
+elif [ -n "$DATABASE_USERNAME" ]; then
+    EXTRA_OPTS="$EXTRA_OPTS -Dspring.datasource.username=$DATABASE_USERNAME"
+fi
+if [ -n "$SPRING_DATASOURCE_PASSWORD" ]; then
+    EXTRA_OPTS="$EXTRA_OPTS -Dspring.datasource.password=$SPRING_DATASOURCE_PASSWORD"
+elif [ -n "$DATABASE_PASSWORD" ]; then
+    EXTRA_OPTS="$EXTRA_OPTS -Dspring.datasource.password=$DATABASE_PASSWORD"
+fi
 
-# Start the application
-exec java -Xmx450m -Xms256m -Dserver.port=${PORT:-8080} -jar /app/app.jar
+# Masking helper for logs
+mask() {
+    echo "$1" | sed -E 's#(postgresql?://)?([^:@]+)(:([^@]+))?@#\1****:****@#; s#([?&]password=)[^&]+#\1****#I'
+}
+
+echo "ENTRYPOINT: environment before start:"
+echo "  SPRING_DATASOURCE_URL=$(mask "$SPRING_DATASOURCE_URL")"
+echo "  DATABASE_URL=$(mask "$DATABASE_URL")"
+echo "  SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-$( [ -n "$DATABASE_USERNAME" ] && echo '****' || echo '') }"
+echo "  SPRING_DATASOURCE_PASSWORD=$( [ -n "$SPRING_DATASOURCE_PASSWORD" ] || [ -n "$DATABASE_PASSWORD" ] && echo '****' || echo '')"
+
+echo "ENTRYPOINT: starting java with EXTRA_OPTS=$EXTRA_OPTS"
+exec java $EXTRA_OPTS -Xmx450m -Xms256m -Dserver.port=${PORT:-8080} -jar /app/app.jar
 EOF
 RUN chmod +x /app/docker-entrypoint.sh
 
