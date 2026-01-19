@@ -35,6 +35,23 @@ EXPOSE ${PORT:-8080}
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-8080}/actuator/health || exit 1
 
-# Run the application, honoring $PORT provided by Render (falls back to 8080)
-# Use sh -c so environment variable expansion works in the ENTRYPOINT.
-ENTRYPOINT ["sh", "-c", "exec java -Xmx450m -Xms256m -Dserver.port=${PORT:-8080} -jar app.jar"]
+# Create a small entrypoint script that normalizes DATABASE_URL if Render
+# provides a `postgres://`/`postgresql://` URL so Spring Boot gets a proper
+# JDBC URL (jdbc:postgresql://...). This prevents Hikari initialization
+# failures caused by an unsupported URL format.
+RUN printf '%s\n' "#!/bin/sh" \
+    "# Normalize DATABASE_URL so Spring Boot gets a JDBC URL" \
+    "if [ -n \"$DATABASE_URL\" ]; then" \
+    "  case \"$DATABASE_URL\" in" \
+    "    postgresql://*|postgres://*)" \
+    "      # strip scheme and re-prefix with jdbc:postgresql://" \
+    "      tail=\"${DATABASE_URL#*://}\"" \
+    "      export DATABASE_URL=\"jdbc:postgresql://$tail\"" \
+    "      ;;" \
+    "  esac" \
+    "fi" \
+    "exec java -Xmx450m -Xms256m -Dserver.port=${PORT:-8080} -jar /app/app.jar" \
+    > /app/docker-entrypoint.sh && chmod +x /app/docker-entrypoint.sh
+
+# Use the entrypoint script
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
