@@ -1,30 +1,7 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    container_name: masjid-postgres
-    environment:
-      POSTGRES_DB: ${DATABASE_NAME:-masjid_db}
-      POSTGRES_USER: ${DATABASE_USERNAME:-postgres}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-postgres}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./backend/create-admin.sql:/docker-entrypoint-initdb.d/01-admin.sql
-      - ./backend/create-campaigns-table.sql:/docker-entrypoint-initdb.d/02-campaigns.sql
-      - ./backend/create-questions-table.sql:/docker-entrypoint-initdb.d/03-questions.sql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME:-postgres}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - masjid-network
-
-  # Backend API
+  # Backend API (uses Render managed database)
   backend:
     build:
       context: ./backend
@@ -33,9 +10,7 @@ services:
     environment:
       - PORT=8080
       - SPRING_PROFILES_ACTIVE=prod
-      - DATABASE_URL=jdbc:postgresql://postgres:5432/${DATABASE_NAME:-masjid_db}
-      - DATABASE_USERNAME=${DATABASE_USERNAME:-postgres}
-      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-postgres}
+      - DATABASE_URL=${DATABASE_URL:?DATABASE_URL is required (use Render Postgres)}
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - STRIPE_API_KEY=${STRIPE_API_KEY:?STRIPE_API_KEY is required}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:?STRIPE_WEBHOOK_SECRET is required}
@@ -89,7 +64,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  postgres_data:
   backend_uploads:
   backend_logs:
 
