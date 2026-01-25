@@ -11,3 +11,12 @@ yarn-error.log*
 *.log
 coverage/
 .cache/
+.idea/
+.vscode/
+.git/
+.gitignore
+.github/
+*.md
+test/
+tests/
+.nyc_output/

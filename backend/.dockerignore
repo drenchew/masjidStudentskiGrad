@@ -8,14 +8,35 @@ mvnw.cmd
 # Environment variables
 .env
 .env.local
+.env.*.local
 
 # IDE
 .idea/
 .vscode/
 *.iml
+*.swp
+*.swo
+*~
+.DS_Store
+
+# VCS
+.git/
+.gitignore
+.github/
 
 # Logs
 *.log
 
-# Uploads
+# Documentation
+docs/
+README.md
+*.md
+
+# Uploads (will be created at runtime)
 uploads/
+
+# Testing
+.nyc_output/
+coverage/
+test/
+tests/

@@ -48,6 +48,76 @@ pnpm-lock.yaml
 # IDEs
 .idea/
 .vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# Environment variables - NEVER commit these!
+.env
+.env.local
+.env.*.local
+.env.prod
+.env.production
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+
+# Runtime artifacts
+logs/
+*.log
+uploads/
+
+# Cache
+.cache/
+.eslintcache
+.stylelintcache
+
+# Testing
+coverage/
+.nyc_output/
+.pytest_cache/
+__tests__/
+test-results/
+
+# Misc
+*.bak
+*.tmp
+*.swp
+*.swo
+*~
+node_modules/.bin
+.venv/
+venv/
+ENV/
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Secrets (for additional safety)
+*.key
+*.pem
+*.cert
+secrets/
+
 *.swp
 *.swo
 *~
