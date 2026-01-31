@@ -33,10 +33,10 @@ spring:
       max-request-size: 50MB
   
   mail:
-    host: ${MAIL_HOST}
-    port: ${MAIL_PORT}
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -68,17 +68,15 @@ server:
 # Application specific properties
 app:
   jwt:
-    secret: ${JWT_SECRET}
+    secret: ${JWT_SECRET:myDefaultSecretKeyThatShouldBeChangedInProduction}
     expiration: ${JWT_EXPIRATION:86400000}
-  
+    
   stripe:
-    api-key: ${STRIPE_API_KEY}
-    webhook-secret: ${STRIPE_WEBHOOK_SECRET}
-  
+    api-key: ${STRIPE_API_KEY:}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+    
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
-  
-  prayer-times:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://masjid-studentski-grad-pbnx.vercel.app}  prayer-times:
     api-url: https://api.aladhan.com/v1/timingsByCity
     backup-api-url: https://muslimsalat.com
     city: Sofia
@@ -88,10 +86,10 @@ app:
   file-storage:
     upload-dir: ${UPLOAD_DIR:/app/uploads}
   
-  frontend-url: ${FRONTEND_URL}
+  frontend-url: ${FRONTEND_URL:https://masjid-studentski-grad-pbnx.vercel.app}
   
   email:
-    from: ${EMAIL_FROM}
+    from: ${EMAIL_FROM:noreply@masjidstudentskigrad.org}
     brevo-api-key: ${BREVO_API_KEY:}
 
 management:

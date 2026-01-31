@@ -25,10 +25,10 @@ public class EmailService {
     private final JavaMailSender mailSender;
     private final WebClient.Builder webClientBuilder;
     
-    @Value("${app.email.from}")
+    @Value("${app.email.from:noreply@masjidstudentskigrad.org}")
     private String fromEmail;
     
-    @Value("${app.frontend-url}")
+    @Value("${app.frontend-url:https://masjid-studentski-grad-pbnx.vercel.app}")
     private String frontendUrl;
 
     @Value("${app.email.brevo-api-key:}")

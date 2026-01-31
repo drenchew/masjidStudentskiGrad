@@ -23,16 +23,16 @@ public class PrayerTimeService {
     private final WebClient.Builder webClientBuilder;
     private final ObjectMapper objectMapper;
     
-    @Value("${app.prayer-times.api-url}")
+    @Value("${app.prayer-times.api-url:https://api.aladhan.com/v1/timingsByCity}")
     private String apiUrl;
     
-    @Value("${app.prayer-times.city}")
+    @Value("${app.prayer-times.city:Sofia}")
     private String city;
     
-    @Value("${app.prayer-times.country}")
+    @Value("${app.prayer-times.country:Bulgaria}")
     private String country;
     
-    @Value("${app.prayer-times.method}")
+    @Value("${app.prayer-times.method:2}")
     private int method;
     
     @Value("${app.prayer-times.backup-api-url:}")

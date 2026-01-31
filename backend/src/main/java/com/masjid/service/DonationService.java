@@ -35,18 +35,23 @@ public class DonationService {
     private final FundraisingCampaignRepository campaignRepository;
     private final EmailService emailService;
     
-    @Value("${app.stripe.api-key}")
+    @Value("${app.stripe.api-key:}")
     private String stripeApiKey;
     
     @Value("${app.stripe.webhook-secret:}")
     private String webhookSecret;
     
-    @Value("${app.frontend-url}")
+    @Value("${app.frontend-url:https://masjid-studentski-grad-pbnx.vercel.app}")
     private String frontendUrl;
     
     @PostConstruct
     public void init() {
-        Stripe.apiKey = stripeApiKey;
+        if (stripeApiKey != null && !stripeApiKey.isBlank()) {
+            Stripe.apiKey = stripeApiKey;
+            log.info("Stripe API key configured");
+        } else {
+            log.warn("Stripe API key not configured - donation features will be disabled");
+        }
     }
     
     public Map<String, String> createOneTimeDonation(String email, String name, BigDecimal amount, String message) throws StripeException {
