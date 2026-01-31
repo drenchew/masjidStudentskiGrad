@@ -2,6 +2,7 @@ package com.masjid.controller;
 
 import com.masjid.model.FundraisingCampaign;
 import com.masjid.service.FundraisingCampaignService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/campaigns")
 @CrossOrigin(origins = "*")
+@Slf4j
 public class FundraisingCampaignController {
     
     @Autowired
@@ -18,12 +20,16 @@ public class FundraisingCampaignController {
     
     @GetMapping
     public ResponseEntity<List<FundraisingCampaign>> getAllCampaigns() {
+        log.info("Getting all campaigns");
         return ResponseEntity.ok(campaignService.getAllCampaigns());
     }
     
     @GetMapping("/active")
     public ResponseEntity<List<FundraisingCampaign>> getActiveCampaigns() {
-        return ResponseEntity.ok(campaignService.getActiveCampaigns());
+        log.info("Getting active campaigns");
+        List<FundraisingCampaign> campaigns = campaignService.getActiveCampaigns();
+        log.info("Found {} active campaigns", campaigns.size());
+        return ResponseEntity.ok(campaigns);
     }
     
     @GetMapping("/featured")
