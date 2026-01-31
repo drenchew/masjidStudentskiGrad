@@ -76,7 +76,9 @@ app:
     webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
     
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://masjid-studentski-grad-pbnx.vercel.app}  prayer-times:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://masjid-studentski-grad-pbnx.vercel.app}
+  
+  prayer-times:
     api-url: https://api.aladhan.com/v1/timingsByCity
     backup-api-url: https://muslimsalat.com
     city: Sofia
