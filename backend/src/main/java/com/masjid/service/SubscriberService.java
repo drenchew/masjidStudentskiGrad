@@ -16,7 +16,7 @@ public class SubscriberService {
     private final SubscriberRepository subscriberRepository;
     private final EmailService emailService;
 
-    @Value("${app.frontend-url:http://localhost:3000}")
+    @Value("${app.frontend-url:https://masjid-studentski-grad-pbnx.vercel.app}")
     private String frontendUrl;
     
     public Subscriber subscribe(String email, Subscriber.Language language) {

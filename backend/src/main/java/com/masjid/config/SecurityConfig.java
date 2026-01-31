@@ -83,7 +83,7 @@ public class SecurityConfig {
     
     @Bean
     public CorsConfigurationSource corsConfigurationSource(
-            @org.springframework.beans.factory.annotation.Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173}") String allowedOrigins) {
+            @org.springframework.beans.factory.annotation.Value("${app.cors.allowed-origins:https://masjid-studentski-grad-pbnx.vercel.app}") String allowedOrigins) {
         CorsConfiguration configuration = new CorsConfiguration();
         
         // Parse allowed origins from environment variable
