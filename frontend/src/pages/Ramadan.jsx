@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FaMoon, FaStar, FaPlay, FaCalendar } from 'react-icons/fa';
-import axios from 'axios';
+import axios from '../api/axios';
 
 const Ramadan = () => {
   const { t, i18n } = useTranslation();

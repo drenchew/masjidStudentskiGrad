@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import axios from '../api/axios';
 import { useCart } from '../context/CartContext';
 import { FaCheck } from 'react-icons/fa';
 

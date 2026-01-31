@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import axios from 'axios';
+import axios from '../api/axios';
 import { FaShoppingCart, FaCheck } from 'react-icons/fa';
 
 export default function Checkout() {

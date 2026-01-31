@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import axios from '../api/axios';
 
 const NewsletterSubscribe = () => {
   const { t, i18n } = useTranslation();
