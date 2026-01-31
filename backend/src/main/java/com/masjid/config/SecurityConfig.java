@@ -90,10 +90,16 @@ public class SecurityConfig {
         List<String> origins = Arrays.asList(allowedOrigins.split(","));
         origins = origins.stream().map(String::trim).toList();
         
-        configuration.setAllowedOrigins(origins);
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With"));
-        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        // Use allowedOriginPatterns to support dynamic subdomains from Vercel
+        List<String> patterns = new java.util.ArrayList<>();
+        patterns.add("https://masjid-studentski-grad-pbnx.vercel.app");
+        patterns.add("https://masjid-studentski-grad-pbnx-*.vercel.app"); // Vercel preview deployments
+        patterns.add("https://*.vercel.app"); // All Vercel deployments for testing
+        
+        configuration.setAllowedOriginPatterns(patterns);
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Total-Count"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
         
