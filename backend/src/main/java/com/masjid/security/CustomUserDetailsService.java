@@ -23,10 +23,13 @@ public class CustomUserDetailsService implements UserDetailsService {
         Admin admin = adminRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
         
+        // Ensure role is uppercase for Spring Security (e.g., "ADMIN" becomes "ROLE_ADMIN")
+        String role = admin.getRole() != null ? admin.getRole().toUpperCase() : "ADMIN";
+        
         return new User(
                 admin.getUsername(),
                 admin.getPassword(),
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + admin.getRole()))
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
         );
     }
 }
