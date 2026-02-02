@@ -22,8 +22,8 @@ export default function AdminDashboard() {
 
   const fetchStats = async (token) => {
     try {
-      const headers = { Authorization: `Bearer ${token}` };
-      const response = await axios.get('/api/admin/stats', { headers });
+      // Let axios interceptor handle Authorization header automatically
+      const response = await axios.get('/api/admin/stats');
       setStats(response.data);
     } catch (error) {
       console.error('Error fetching stats:', error);
