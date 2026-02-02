@@ -34,7 +34,7 @@ public class AuthController {
         
         return ResponseEntity.ok(new JwtResponse(jwt, "Bearer"));
     }
-    
+
     @GetMapping("/test")
     public ResponseEntity<String> test() {
         return ResponseEntity.ok("Auth endpoint is reachable!");

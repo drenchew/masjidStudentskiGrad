@@ -55,7 +55,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/khutbahs/public/**").permitAll()
                         .requestMatchers("/api/questions", "/api/questions/count").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .anyRequest().permitAll()  // Changed to permitAll() temporarily for debugging
+                        .anyRequest().denyAll()  // Deny all other requests by default (secure-by-default)
                 )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -90,15 +90,15 @@ public class SecurityConfig {
         List<String> origins = Arrays.asList(allowedOrigins.split(","));
         origins = origins.stream().map(String::trim).toList();
         
-        // Use allowedOriginPatterns to support dynamic subdomains from Vercel
+        // Use allowedOriginPatterns only for specific production domains
         List<String> patterns = new java.util.ArrayList<>();
         patterns.add("https://masjid-studentski-grad-pbnx.vercel.app");
-        patterns.add("https://masjid-studentski-grad-pbnx-*.vercel.app"); // Vercel preview deployments
-        patterns.add("https://*.vercel.app"); // All Vercel deployments for testing
+        patterns.add("https://masjid-studentski-grad-pbnx-*.vercel.app"); // Vercel preview deployments only
+        // DO NOT add https://*.vercel.app as that's too broad
         
         configuration.setAllowedOriginPatterns(patterns);
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("Content-Type", "Authorization"));
         configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Total-Count"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
