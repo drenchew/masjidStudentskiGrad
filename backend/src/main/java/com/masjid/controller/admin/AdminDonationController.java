@@ -14,7 +14,6 @@ import java.util.Map;
 @RequestMapping("/api/admin/donations")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
-@CrossOrigin(origins = "*")
 public class AdminDonationController {
     
     private final DonationService donationService;

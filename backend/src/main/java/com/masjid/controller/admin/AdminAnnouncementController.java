@@ -14,7 +14,6 @@ import java.util.Map;
 @RequestMapping("/api/admin/announcements")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
-@CrossOrigin(origins = "*")
 public class AdminAnnouncementController {
     
     private final AnnouncementService announcementService;

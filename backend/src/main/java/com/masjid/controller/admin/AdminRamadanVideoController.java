@@ -14,7 +14,6 @@ import java.util.Map;
 @RequestMapping("/api/admin/ramadan-videos")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
-@CrossOrigin(origins = "*")
 public class AdminRamadanVideoController {
     
     private final RamadanVideoService ramadanVideoService;

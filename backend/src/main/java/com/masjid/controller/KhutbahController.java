@@ -11,7 +11,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/khutbahs")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class KhutbahController {
     
     private final KhutbahService khutbahService;

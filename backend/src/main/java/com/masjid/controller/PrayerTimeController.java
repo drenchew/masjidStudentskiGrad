@@ -13,7 +13,6 @@ import java.time.LocalDate;
 @RestController
 @RequestMapping("/api/prayer-times")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class PrayerTimeController {
     
     private final PrayerTimeService prayerTimeService;

@@ -44,11 +44,12 @@ server:
   error:
     include-message: always
     include-binding-errors: always
-
+  forward-headers-strategy: framework  # Handle X-Forwarded-* headers from reverse proxy
+  
 # Application specific properties
 app:
   jwt:
-    secret: ${JWT_SECRET:dev-secret-key-change-in-production-minimum-32-characters}
+    secret: ${JWT_SECRET:}  # MUST be set via environment variable (no default for security)
     expiration: ${JWT_EXPIRATION:86400000}
   
   stripe:

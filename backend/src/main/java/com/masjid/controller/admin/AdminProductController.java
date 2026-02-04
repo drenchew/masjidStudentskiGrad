@@ -15,7 +15,6 @@ import java.util.Map;
 @RequestMapping("/api/admin/products")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
-@CrossOrigin(origins = "*")
 public class AdminProductController {
     
     private final ProductService productService;

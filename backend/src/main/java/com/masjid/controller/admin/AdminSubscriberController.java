@@ -15,7 +15,6 @@ import java.util.Map;
 @RequestMapping("/api/admin/subscribers")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
-@CrossOrigin(origins = "*")
 public class AdminSubscriberController {
     
     private final SubscriberService subscriberService;

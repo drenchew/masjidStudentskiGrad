@@ -15,7 +15,6 @@ import java.util.Map;
 @RequestMapping("/api/admin/khutbahs")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
-@CrossOrigin(origins = "*")
 public class AdminKhutbahController {
     
     private final KhutbahService khutbahService;

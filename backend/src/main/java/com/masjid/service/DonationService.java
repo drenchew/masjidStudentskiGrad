@@ -1,6 +1,7 @@
 package com.masjid.service;
 
 import com.google.gson.Gson;
+import com.masjid.exception.ResourceNotFoundException;
 import com.masjid.model.Donation;
 import com.masjid.model.FundraisingCampaign;
 import com.masjid.repository.DonationRepository;
@@ -96,19 +97,19 @@ public class DonationService {
         
         // Verify campaign exists
         FundraisingCampaign campaign = campaignRepository.findById(campaignId)
-            .orElseThrow(() -> new RuntimeException("Campaign not found with id: " + campaignId));
+            .orElseThrow(() -> new ResourceNotFoundException("Campaign not found"));
         
         log.info("Campaign found: {} (Active: {})", campaign.getTitleEn(), campaign.isActive());
         
         // Check if campaign is active
         if (!campaign.isActive()) {
-            throw new RuntimeException("Campaign is not active");
+            throw new IllegalStateException("This campaign is not currently accepting donations");
         }
         
         // Check Stripe API key
         if (stripeApiKey == null || stripeApiKey.isEmpty()) {
             log.error("Stripe API key is not configured!");
-            throw new RuntimeException("Stripe is not configured. Please set STRIPE_API_KEY in backend/.env");
+            throw new IllegalStateException("Payment system is temporarily unavailable. Please contact support.");
         }
         
         log.info("Creating Stripe Payment Intent for amount: {} cents", amount.multiply(new BigDecimal(100)).longValue());

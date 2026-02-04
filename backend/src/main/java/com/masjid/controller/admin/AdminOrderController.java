@@ -14,7 +14,6 @@ import java.util.Map;
 @RequestMapping("/api/admin/orders")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
-@CrossOrigin(origins = "*")
 public class AdminOrderController {
     
     private final OrderService orderService;

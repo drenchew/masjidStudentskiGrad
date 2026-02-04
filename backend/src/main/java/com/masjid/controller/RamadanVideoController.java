@@ -11,7 +11,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/ramadan-videos")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class RamadanVideoController {
     
     private final RamadanVideoService ramadanVideoService;
