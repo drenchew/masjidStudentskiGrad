@@ -39,9 +39,9 @@ public class SecurityHeadersConfig implements WebMvcConfigurer {
                 "script-src 'self' 'unsafe-inline' https://js.stripe.com; " +
                 "style-src 'self' 'unsafe-inline'; " +
                 "font-src 'self' data:; " +
-                "img-src 'self' data: https:; " +
+                "img-src 'self' data: https: https://img.youtube.com; " +
                 "connect-src 'self' https://api.stripe.com https://api.aladhan.com https://muslimsalat.com; " +
-                "frame-src https://js.stripe.com; " +
+                "frame-src https://js.stripe.com https://www.youtube-nocookie.com; " +
                 "base-uri 'self'; " +
                 "form-action 'self'");
             

@@ -18,10 +18,18 @@ public class SubscriberController {
     @PostMapping("/subscribe")
     public ResponseEntity<Map<String, String>> subscribe(@RequestBody Map<String, String> request) {
         String email = request.get("email");
-        Subscriber.Language language = Subscriber.Language.valueOf(request.get("language").toUpperCase());
+        String languageStr = request.get("language");
+        
         try {
+            // Handle language code variations (e.g., "EN", "en", "en-US" → "EN")
+            String normalizedLanguage = languageStr.toUpperCase().split("-")[0];
+            Subscriber.Language language = Subscriber.Language.valueOf(normalizedLanguage);
+            
             subscriberService.subscribe(email, language);
             return ResponseEntity.ok(Map.of("message", "Please check your email to verify subscription"));
+        } catch (IllegalArgumentException e) {
+            // Invalid language code
+            return ResponseEntity.status(400).body(Map.of("message", "Invalid language code. Use: EN, BG, or AR"));
         } catch (RuntimeException e) {
             // Common path: email already subscribed
             return ResponseEntity.status(409).body(Map.of("message", e.getMessage()));
