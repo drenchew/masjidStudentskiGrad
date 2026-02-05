@@ -40,8 +40,14 @@ public class SubscriberController {
     
     @GetMapping("/verify")
     public ResponseEntity<Map<String, String>> verifySubscription(@RequestParam String token) {
-        subscriberService.verifySubscription(token);
-        return ResponseEntity.ok(Map.of("message", "Subscription verified successfully"));
+        try {
+            subscriberService.verifySubscription(token);
+            return ResponseEntity.ok(Map.of("message", "Subscription verified successfully"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(400).body(Map.of("message", "Invalid or expired verification token. Please subscribe again."));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("message", "Failed to verify subscription"));
+        }
     }
     
     @PostMapping("/unsubscribe")
