@@ -120,7 +120,8 @@ export default function ManageRamadanVideos() {
   const getYouTubeEmbedUrl = (url) => {
     if (!url) return '';
     const videoId = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/watch\?.+&v=))([\w-]{11})/);
-    return videoId ? `https://www.youtube.com/embed/${videoId[1]}` : url;
+    // Use youtube-nocookie.com to prevent third-party cookie warnings
+    return videoId ? `https://www.youtube-nocookie.com/embed/${videoId[1]}` : url;
   };
 
   const extractYouTubeId = (url) => {

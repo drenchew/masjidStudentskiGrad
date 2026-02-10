@@ -35,6 +35,7 @@ bin/
 mvnw
 mvnw.cmd
 
+*.md
 # Node
 node_modules/
 npm-debug.log*

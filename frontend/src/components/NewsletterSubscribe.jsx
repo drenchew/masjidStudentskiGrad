@@ -14,9 +14,11 @@ const NewsletterSubscribe = () => {
     setMessage('');
 
     try {
+      // Extract base language code (e.g., 'en' from 'en-US')
+      const languageCode = i18n.language.split('-')[0].toUpperCase();
       await axios.post('/api/subscribers/subscribe', {
         email,
-        language: i18n.language.toUpperCase()
+        language: languageCode
       });
       setMessage(t('newsletter.success'));
       setEmail('');
