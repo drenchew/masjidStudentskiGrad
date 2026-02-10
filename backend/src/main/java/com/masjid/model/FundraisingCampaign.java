@@ -20,13 +20,13 @@ public class FundraisingCampaign {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String titleEn;
     
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String titleBg;
     
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String titleAr;
     
     @Column(columnDefinition = "TEXT", nullable = false)
@@ -44,7 +44,7 @@ public class FundraisingCampaign {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal currentAmount = BigDecimal.ZERO;
     
-    @Column
+    @Column(length = 1000)
     private String imageUrl;
     
     @Column

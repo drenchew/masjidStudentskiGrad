@@ -19,13 +19,13 @@ public class Announcement {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String titleEn;
     
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String titleBg;
     
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String titleAr;
     
     @Column(columnDefinition = "TEXT", nullable = false)

@@ -21,13 +21,13 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String nameEn;
     
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String nameBg;
     
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String nameAr;
     
     @Column(columnDefinition = "TEXT")
@@ -45,9 +45,10 @@ public class Product {
     @Column(nullable = false)
     private Integer stock;
     
+    @Column(length = 1000)
     private String imageUrl;
     
-    @Column(nullable = false)
+    @Column(nullable = false, length = 200)
     private String category;
     
     @Column(nullable = false)

@@ -21,13 +21,13 @@ public class Khutbah {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String titleEn;
     
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String titleBg;
     
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String titleAr;
     
     @Column(columnDefinition = "TEXT")
@@ -42,10 +42,13 @@ public class Khutbah {
     @Column(nullable = false)
     private LocalDate deliveredDate;
     
+    @Column(length = 300)
     private String speaker;
     
+    @Column(length = 500)
     private String topicEn;
     
+    @Column(length = 500)
     private String topicBg;
     
     private String topicAr;
