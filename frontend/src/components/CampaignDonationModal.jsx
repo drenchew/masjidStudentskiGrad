@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import axios from '../api/axios';
-import { FaTimes, FaHeart } from 'react-icons/fa';
+import { FaTimes, FaHeart, FaExclamationCircle } from 'react-icons/fa';
+import { validateDonationAmount, validateName, validateEmail, sanitizeInput, VALIDATION_LIMITS } from '../utils/validationLimits';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PK || 'pk_test_placeholder');
 
@@ -17,6 +18,7 @@ export default function CampaignDonationModal({ campaign, onClose }) {
   const [loading, setLoading] = useState(false);
   const [clientSecret, setClientSecret] = useState(null);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [error, setError] = useState('');
 
   const presetAmounts = [10, 20, 50, 100, 200, 500];
 
@@ -25,12 +27,36 @@ export default function CampaignDonationModal({ campaign, onClose }) {
                campaign.titleEn;
 
   const handleProceedToPayment = async () => {
+    setError('');
     const donationAmount = customAmount || amount;
     
-    if (!donationAmount || parseFloat(donationAmount) <= 0) {
-      alert(i18n.language === 'ar' ? 'الرجاء إدخال مبلغ صالح' :
-            i18n.language === 'bg' ? 'Моля, въведете валидна сума' :
-            'Please enter a valid amount');
+    // Validate donation amount
+    if (!donationAmount) {
+      setError(i18n.language === 'ar' ? 'الرجاء إدخال مبلغ' :
+               i18n.language === 'bg' ? 'Моля, въведете сума' :
+               'Please enter an amount');
+      return;
+    }
+
+    const amountError = validateDonationAmount(donationAmount);
+    if (amountError) {
+      setError(amountError);
+      return;
+    }
+
+    // Validate optional fields if provided
+    if (name && name.length > VALIDATION_LIMITS.NAME.MAX) {
+      setError(VALIDATION_LIMITS.NAME.ERROR_MAX);
+      return;
+    }
+
+    if (email && email.length > VALIDATION_LIMITS.EMAIL.MAX) {
+      setError(VALIDATION_LIMITS.EMAIL.ERROR_MAX);
+      return;
+    }
+
+    if (message && message.length > VALIDATION_LIMITS.CONTACT_MESSAGE.MAX) {
+      setError(VALIDATION_LIMITS.CONTACT_MESSAGE.ERROR_MAX);
       return;
     }
 
@@ -38,24 +64,29 @@ export default function CampaignDonationModal({ campaign, onClose }) {
 
     try {
       const response = await axios.post(`/api/donations/campaign/${campaign.id}`, {
-        email: email || 'anonymous@donor.com',
-        name: name || 'Anonymous',
+        email: email ? sanitizeInput(email) : 'anonymous@donor.com',
+        name: name ? sanitizeInput(name) : 'Anonymous',
         amount: parseFloat(donationAmount),
-        message: message || '',
+        message: message ? sanitizeInput(message) : '',
         currency: 'EUR'
       });
 
       if (response.data?.clientSecret) {
         setClientSecret(response.data.clientSecret);
         setShowPaymentForm(true);
+
       } else {
-        alert('Payment setup failed: no clientSecret returned');
+        setError(i18n.language === 'ar' ? 'فشل إعداد الدفع' :
+                 i18n.language === 'bg' ? 'Неуспешно настройване на плащане' :
+                 'Payment setup failed: no clientSecret returned');
       }
     } catch (error) {
       console.error('Donation error:', error);
-      alert(i18n.language === 'ar' ? 'حدث خطأ. يرجى المحاولة مرة أخرى.' :
-            i18n.language === 'bg' ? 'Възникна грешка. Моля, опитайте отново.' :
-            'An error occurred. Please try again.');
+      const errorMsg = error.response?.data?.message || 
+                       (i18n.language === 'ar' ? 'حدث خطأ. يرجى المحاولة مرة أخرى.' :
+                        i18n.language === 'bg' ? 'Възникна грешка. Моля, опитайте отново.' :
+                        'An error occurred. Please try again.');
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -101,6 +132,14 @@ export default function CampaignDonationModal({ campaign, onClose }) {
           </div>
           <p className="text-xl text-gray-700 font-semibold">{title}</p>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-300 rounded-xl flex items-start gap-3">
+            <FaExclamationCircle className="text-red-600 text-xl mt-0.5 flex-shrink-0" />
+            <p className="text-red-700 font-semibold">{error}</p>
+          </div>
+        )}
 
         {/* Campaign Progress */}
         <div className="mb-6 p-4 bg-islamic-cream rounded-xl">

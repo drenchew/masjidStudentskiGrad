@@ -3,10 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import axios from '../api/axios';
-import { FaShoppingCart, FaCheck } from 'react-icons/fa';
+import { FaShoppingCart, FaCheck, FaExclamationCircle } from 'react-icons/fa';
+import { validateField, validateEmail, sanitizeInput, VALIDATION_LIMITS } from '../utils/validationLimits';
 
 export default function Checkout() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const navigate = useNavigate();
   const { cartItems, getCartTotal, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
@@ -35,27 +36,95 @@ export default function Checkout() {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.customerName.trim()) newErrors.customerName = 'Name is required';
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
-    if (!formData.phoneNumber.trim()) newErrors.phoneNumber = 'Phone is required';
-    if (!formData.shippingAddress.trim()) newErrors.shippingAddress = 'Address is required';
-    if (!formData.city.trim()) newErrors.city = 'City is required';
-    if (!formData.postalCode.trim()) newErrors.postalCode = 'Postal code is required';
+    
+    // Validate customer name
+    if (!formData.customerName.trim()) {
+      newErrors.customerName = 'Name is required';
+    } else if (formData.customerName.length < VALIDATION_LIMITS.NAME.MIN) {
+      newErrors.customerName = VALIDATION_LIMITS.NAME.ERROR_MIN;
+    } else if (formData.customerName.length > VALIDATION_LIMITS.NAME.MAX) {
+      newErrors.customerName = VALIDATION_LIMITS.NAME.ERROR_MAX;
+    }
+    
+    // Validate email
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else {
+      const emailError = validateEmail(formData.email);
+      if (emailError) newErrors.email = emailError;
+    }
+    
+    // Validate phone number (basic length check)
+    if (!formData.phoneNumber.trim()) {
+      newErrors.phoneNumber = 'Phone is required';
+    } else if (formData.phoneNumber.length < 7 || formData.phoneNumber.length > 20) {
+      newErrors.phoneNumber = 'Phone number must be between 7 and 20 characters';
+    }
+    
+    // Validate shipping address
+    if (!formData.shippingAddress.trim()) {
+      newErrors.shippingAddress = 'Address is required';
+    } else if (formData.shippingAddress.length < 5 || formData.shippingAddress.length > 200) {
+      newErrors.shippingAddress = 'Address must be between 5 and 200 characters';
+    }
+    
+    // Validate city
+    if (!formData.city.trim()) {
+      newErrors.city = 'City is required';
+    } else if (formData.city.length < 2 || formData.city.length > 50) {
+      newErrors.city = 'City must be between 2 and 50 characters';
+    }
+    
+    // Validate postal code
+    if (!formData.postalCode.trim()) {
+      newErrors.postalCode = 'Postal code is required';
+    } else if (formData.postalCode.length < 3 || formData.postalCode.length > 20) {
+      newErrors.postalCode = 'Postal code must be between 3 and 20 characters';
+    }
+    
+    // Validate notes if provided
+    if (formData.notes && formData.notes.length > VALIDATION_LIMITS.CONTACT_MESSAGE.MAX) {
+      newErrors.notes = VALIDATION_LIMITS.CONTACT_MESSAGE.ERROR_MAX;
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleChange = (e) => {
+    let value = e.target.value;
+    const fieldName = e.target.name;
+    
+    // Apply length limits in real-time for text fields
+    if (fieldName === 'customerName' && value.length > VALIDATION_LIMITS.NAME.MAX) {
+      value = value.substring(0, VALIDATION_LIMITS.NAME.MAX);
+    }
+    if (fieldName === 'email' && value.length > VALIDATION_LIMITS.EMAIL.MAX) {
+      value = value.substring(0, VALIDATION_LIMITS.EMAIL.MAX);
+    }
+    if (fieldName === 'shippingAddress' && value.length > 200) {
+      value = value.substring(0, 200);
+    }
+    if (fieldName === 'city' && value.length > 50) {
+      value = value.substring(0, 50);
+    }
+    if (fieldName === 'postalCode' && value.length > 20) {
+      value = value.substring(0, 20);
+    }
+    if (fieldName === 'notes' && value.length > VALIDATION_LIMITS.CONTACT_MESSAGE.MAX) {
+      value = value.substring(0, VALIDATION_LIMITS.CONTACT_MESSAGE.MAX);
+    }
+    
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [fieldName]: value
     });
-    // Clear error for this field
-    if (errors[e.target.name]) {
+    
+    // Clear error for this field when user starts typing
+    if (errors[fieldName]) {
       setErrors({
         ...errors,
-        [e.target.name]: null
+        [fieldName]: null
       });
     }
   };
@@ -71,7 +140,13 @@ export default function Checkout() {
 
     try {
       const orderData = {
-        ...formData,
+        customerName: sanitizeInput(formData.customerName),
+        email: sanitizeInput(formData.email),
+        phoneNumber: sanitizeInput(formData.phoneNumber),
+        shippingAddress: sanitizeInput(formData.shippingAddress),
+        city: sanitizeInput(formData.city),
+        postalCode: sanitizeInput(formData.postalCode),
+        notes: formData.notes ? sanitizeInput(formData.notes) : '',
         items: cartItems.map(item => ({
           productId: item.id,
           quantity: item.quantity,
@@ -86,7 +161,8 @@ export default function Checkout() {
       clearCart();
     } catch (error) {
       console.error('Order submission error:', error);
-      alert('Failed to submit order. Please try again.');
+      const errorMsg = error.response?.data?.message || 'Failed to submit order. Please try again.';
+      setErrors({ submit: errorMsg });
     } finally {
       setLoading(false);
     }
@@ -185,6 +261,14 @@ export default function Checkout() {
                  i18n.language === 'bg' ? 'Информация за доставка' : 
                  'Shipping Information'}
               </h2>
+              
+              {/* Submit Error Alert */}
+              {errors.submit && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-300 rounded-xl flex items-start gap-3">
+                  <FaExclamationCircle className="text-red-600 text-xl mt-0.5 flex-shrink-0" />
+                  <p className="text-red-700 font-semibold">{errors.submit}</p>
+                </div>
+              )}
               
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
@@ -310,11 +394,18 @@ export default function Checkout() {
                     value={formData.notes}
                     onChange={handleChange}
                     rows="3"
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 focus:border-islamic-green transition-all"
+                    maxLength={VALIDATION_LIMITS.CONTACT_MESSAGE.MAX}
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
+                      errors.notes ? 'border-red-500' : 'border-gray-300 focus:border-islamic-green'
+                    }`}
                     placeholder={i18n.language === 'ar' ? 'أي تعليمات خاصة؟' : 
                                 i18n.language === 'bg' ? 'Специални инструкции?' : 
                                 'Any special instructions?'}
                   />
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    {errors.notes && <p className="text-red-500 font-semibold">{errors.notes}</p>}
+                    {!errors.notes && <span>{formData.notes.length} / {VALIDATION_LIMITS.CONTACT_MESSAGE.MAX} characters</span>}
+                  </div>
                 </div>
 
                 <button

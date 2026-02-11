@@ -27,7 +27,7 @@ export default function Shop() {
     }
   };
 
-  const categories = ['ALL', 'BOOKS', 'PRAYER_ITEMS', 'CLOTHING', 'HOME_DECOR', 'PERSONAL_CARE'];
+  const categories = ['ALL', 'BOOKS', 'MISK', 'OTHER'];
 
   const filteredProducts = selectedCategory === 'ALL' 
     ? products 
