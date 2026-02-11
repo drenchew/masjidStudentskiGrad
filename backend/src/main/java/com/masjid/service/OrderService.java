@@ -3,6 +3,7 @@ package com.masjid.service;
 import com.masjid.model.Order;
 import com.masjid.model.OrderItem;
 import com.masjid.model.Product;
+import com.masjid.dto.OrderRequest;
 import com.masjid.repository.OrderRepository;
 import com.masjid.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -21,6 +23,72 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final EmailService emailService;
+    
+    /**
+     * Create order from OrderRequest DTO (used by Checkout form)
+     */
+    @Transactional
+    public Order createOrderFromRequest(OrderRequest request) {
+        Order order = new Order();
+        order.setCustomerName(request.getCustomerName());
+        order.setCustomerEmail(request.getEmail());
+        order.setCustomerPhone(request.getPhoneNumber());
+        order.setDeliveryAddress(request.getShippingAddress());
+        order.setCity(request.getCity());
+        order.setDeliveryNotes(request.getNotes());
+        
+        // Create order items from request
+        List<OrderItem> items = new ArrayList<>();
+        BigDecimal subtotal = BigDecimal.ZERO;
+        
+        for (OrderRequest.OrderItemRequest itemRequest : request.getItems()) {
+            Product product = productRepository.findById(itemRequest.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Product not found: " + itemRequest.getProductId()));
+            
+            // Check stock
+            if (product.getStock() < itemRequest.getQuantity()) {
+                throw new RuntimeException("Insufficient stock for product: " + product.getNameEn());
+            }
+            
+            OrderItem item = new OrderItem();
+            item.setOrder(order);
+            item.setProduct(product);
+            item.setQuantity(itemRequest.getQuantity());
+            item.setPriceAtOrder(BigDecimal.valueOf(itemRequest.getPrice()));
+            item.setProductNameEn(product.getNameEn());
+            item.setProductNameBg(product.getNameBg());
+            item.setProductNameAr(product.getNameAr());
+            
+            // Calculate subtotal
+            BigDecimal itemTotal = BigDecimal.valueOf(itemRequest.getPrice()).multiply(new BigDecimal(itemRequest.getQuantity()));
+            subtotal = subtotal.add(itemTotal);
+            
+            // Decrease stock
+            product.setStock(product.getStock() - itemRequest.getQuantity());
+            productRepository.save(product);
+            
+            items.add(item);
+        }
+        
+        order.setItems(items);
+        order.setSubtotal(subtotal);
+        order.setShippingCost(BigDecimal.ZERO);
+        order.setTotal(subtotal);
+        order.setStatus(Order.OrderStatus.PENDING);
+        order.setOrderNumber(generateOrderNumber());
+        
+        Order savedOrder = orderRepository.save(order);
+        
+        // Send confirmation email
+        try {
+            emailService.sendOrderConfirmation(savedOrder);
+        } catch (Exception e) {
+            // Log error but don't fail order creation
+            e.printStackTrace();
+        }
+        
+        return savedOrder;
+    }
     
     @Transactional
     public Order createOrder(Order order) {
