@@ -79,11 +79,15 @@ app:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:https://masjid-studentski-grad-pbnx.vercel.app}
   
   prayer-times:
-    api-url: https://api.aladhan.com/v1/timingsByCity
-    backup-api-url: https://muslimsalat.com
+    api-url: https://islamicapi.com/api/v1/prayer-time
+    latitude: 42.6977
+    longitude: 23.3219
+    method: 13
+    school: 1
+    api-key: ${ISLAMIC_API_KEY:}
+    backup-api-url: https://api.aladhan.com/v1/timingsByCity
     city: Sofia
     country: Bulgaria
-    method: 2 # Islamic Society of North America
   
   file-storage:
     upload-dir: ${UPLOAD_DIR:/app/uploads}

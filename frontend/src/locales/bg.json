@@ -26,7 +26,11 @@
     "isha": "Иша",
     "hijriDate": "Хиджра дата",
     "in": "след",
-    "tomorrow": "Утре"
+    "tomorrow": "Утре",
+    "prohibitedTime": "Забранено време",
+    "prohibitedTimeLabel": "е забранено време за молитва",
+    "prohibitedTimeRange": "Забранено време",
+    "prohibitedTimeMessage": "Молитвата не е разрешена по време на този период според исламската традиция"
   },
   "khutbahs": {
     "title": "Петъчни проповеди",

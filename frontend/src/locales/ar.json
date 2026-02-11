@@ -26,7 +26,11 @@
     "isha": "العشاء",
     "hijriDate": "التاريخ الهجري",
     "in": "بعد",
-    "tomorrow": "غداً"
+    "tomorrow": "غداً",
+    "prohibitedTime": "وقت ممنوع",
+    "prohibitedTimeLabel": "وقت ممنوع للصلاة",
+    "prohibitedTimeRange": "الوقت الممنوع",
+    "prohibitedTimeMessage": "الصلاة غير مسموحة خلال هذا الوقت وفقاً للتقاليد الإسلامية"
   },
   "khutbahs": {
     "title": "خطب الجمعة",

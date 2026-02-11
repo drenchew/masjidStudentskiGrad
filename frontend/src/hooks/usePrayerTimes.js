@@ -64,11 +64,83 @@ const usePrayerTimes = () => {
   }, []);
 
   /**
+   * Check if current time is within a prohibited time window
+   */
+  const isTimeInRange = useCallback((current, start, end) => {
+    const currentMinutes = parseTimeToMinutes(current);
+    const startMinutes = parseTimeToMinutes(start);
+    const endMinutes = parseTimeToMinutes(end);
+
+    if (currentMinutes === null || startMinutes === null || endMinutes === null) {
+      return false;
+    }
+
+    return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+  }, [parseTimeToMinutes]);
+
+  /**
+   * Check if current time is in prohibited period
+   */
+  const getProhibitedTimeInfo = useCallback((times) => {
+    if (!times) return null;
+
+    const now = new Date();
+    const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    // Check sunrise prohibited time
+    if (times.sunriseProhibitedStart && times.sunriseProhibitedEnd) {
+      if (isTimeInRange(currentTimeStr, times.sunriseProhibitedStart, times.sunriseProhibitedEnd)) {
+        return {
+          type: 'sunrise',
+          start: times.sunriseProhibitedStart,
+          end: times.sunriseProhibitedEnd
+        };
+      }
+    }
+
+    // Check noon prohibited time
+    if (times.noonProhibitedStart && times.noonProhibitedEnd) {
+      if (isTimeInRange(currentTimeStr, times.noonProhibitedStart, times.noonProhibitedEnd)) {
+        return {
+          type: 'noon',
+          start: times.noonProhibitedStart,
+          end: times.noonProhibitedEnd
+        };
+      }
+    }
+
+    // Check sunset prohibited time
+    if (times.sunsetProhibitedStart && times.sunsetProhibitedEnd) {
+      if (isTimeInRange(currentTimeStr, times.sunsetProhibitedStart, times.sunsetProhibitedEnd)) {
+        return {
+          type: 'sunset',
+          start: times.sunsetProhibitedStart,
+          end: times.sunsetProhibitedEnd
+        };
+      }
+    }
+
+    return null;
+  }, [isTimeInRange]);
+
+  /**
    * Calculate the next prayer based on current time
    */
   const calculateNextPrayer = useCallback((times) => {
     if (!times) {
       setNextPrayer(null);
+      return;
+    }
+
+    // Check for prohibited times
+    const prohibitedTime = getProhibitedTimeInfo(times);
+    if (prohibitedTime) {
+      setNextPrayer({
+        isProhibitedTime: true,
+        prohibitedType: prohibitedTime.type,
+        prohibitedStart: prohibitedTime.start,
+        prohibitedEnd: prohibitedTime.end
+      });
       return;
     }
 
@@ -97,7 +169,8 @@ const usePrayerTimes = () => {
           name: prayer.name,
           time: formatMinutesAsTime(prayerMinutes),
           timeLeft: `${hoursLeft}h ${minutesLeft}m`,
-          minutesUntil
+          minutesUntil,
+          isProhibitedTime: false
         });
         return;
       }
@@ -114,9 +187,10 @@ const usePrayerTimes = () => {
       time: formatMinutesAsTime(fajrMinutes),
       timeLeft: `${hoursLeft}h ${minutesLeft}m`,
       minutesUntil: minutesUntilTomorrow,
-      isTomorrow: true
+      isTomorrow: true,
+      isProhibitedTime: false
     });
-  }, [parseTimeToMinutes, formatMinutesAsTime]);
+  }, [parseTimeToMinutes, formatMinutesAsTime, getProhibitedTimeInfo]);
 
   /**
    * Fetch prayer times from backend, with fallback to direct API call

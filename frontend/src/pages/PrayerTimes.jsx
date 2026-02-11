@@ -70,9 +70,8 @@ const PrayerTimes = () => {
             Important Notes
           </h2>
           <ul className="space-y-2 text-gray-700">
-            <li>• Jumu'ah (Friday Prayer) starts at Dhuhr time</li>
-            <li>• Please arrive 15 minutes early for congregational prayers</li>
-            <li>• Prayer times are calculated for Sofia, Bulgaria</li>
+            <li>• Check GrandMufti for all prayer times: <a href="https://www.grandmufti.bg/bg/home/vremena-za-namaz.html" className="text-islamic-green underline">grandmufti.bg</a></li>
+            <li>• Prayer times shown are for Sofia, Bulgaria</li>
             <li>• Times may vary slightly during daylight saving time changes</li>
           </ul>
         </div>

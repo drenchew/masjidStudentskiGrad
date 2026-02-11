@@ -26,7 +26,11 @@
     "isha": "Isha",
     "hijriDate": "Hijri Date",
     "in": "in",
-    "tomorrow": "Tomorrow"
+    "tomorrow": "Tomorrow",
+    "prohibitedTime": "Prohibited Time",
+    "prohibitedTimeLabel": "is a prohibited time for prayer",
+    "prohibitedTimeRange": "Prohibited time",
+    "prohibitedTimeMessage": "Prayer is not allowed during this time according to Islamic tradition"
   },
   "khutbahs": {
     "title": "Friday Khutbahs",

@@ -23,7 +23,7 @@ public class PrayerTimeService {
     private final WebClient.Builder webClientBuilder;
     private final ObjectMapper objectMapper;
     
-    @Value("${app.prayer-times.api-url:https://api.aladhan.com/v1/timingsByCity}")
+    @Value("${app.prayer-times.api-url:https://islamicapi.com/api/v1/prayer-time}")
     private String apiUrl;
     
     @Value("${app.prayer-times.city:Sofia}")
@@ -32,10 +32,22 @@ public class PrayerTimeService {
     @Value("${app.prayer-times.country:Bulgaria}")
     private String country;
     
-    @Value("${app.prayer-times.method:2}")
+    @Value("${app.prayer-times.latitude:42.6977}")
+    private String latitude;
+    
+    @Value("${app.prayer-times.longitude:23.3219}")
+    private String longitude;
+    
+    @Value("${app.prayer-times.method:13}")
     private int method;
     
-    @Value("${app.prayer-times.backup-api-url:}")
+    @Value("${app.prayer-times.school:1}")
+    private int school;
+    
+    @Value("${app.prayer-times.api-key:}")
+    private String islamicApiKey;
+    
+    @Value("${app.prayer-times.backup-api-url:https://api.aladhan.com/v1/timingsByCity}")
     private String backupApiUrl;
     
     // Fetch prayer times every day at 3 AM
@@ -62,35 +74,106 @@ public class PrayerTimeService {
             WebClient webClient = webClientBuilder.build();
             String response = null;
 
-            // Try primary provider (Aladhan) - use date in URL path format DD-MM-YYYY
+            // Try primary provider (Islamic API) with latitude/longitude
             try {
-                String dateStr = String.format("%02d-%02d-%d", 
-                    date.getDayOfMonth(), 
-                    date.getMonthValue(), 
-                    date.getYear());
-                String url = String.format("%s/%s?city=%s&country=%s&method=%d",
-                        apiUrl, dateStr, city, country, method);
-                log.info("Fetching from primary API: {}", url);
+                String url = apiUrl + "?lat=" + latitude + "&lon=" + longitude + 
+                            "&method=" + method + "&school=" + school;
+                if (islamicApiKey != null && !islamicApiKey.isBlank()) {
+                    url += "&api_key=" + islamicApiKey;
+                }
+                log.info("Fetching from primary API (IslamicAPI): {}", url);
                 response = webClient.get().uri(url).retrieve().bodyToMono(String.class).block();
             } catch (Exception e) {
-                log.warn("Primary prayer-times provider (Aladhan) failed: {}", e.getMessage());
+                log.warn("Primary prayer-times provider (IslamicAPI) failed: {}", e.getMessage());
             }
 
-            // If primary failed or returned null, try backup provider (Muslim Salat)
+            // If primary failed or returned null, try backup provider (Aladhan)
             if (response == null || response.isEmpty()) {
-                if (backupApiUrl != null && !backupApiUrl.isBlank()) {
-                    try {
-                        String url = String.format("%s/%s.json", backupApiUrl, city.toLowerCase());
-                        log.info("Fetching from backup API: {}", url);
-                        response = webClient.get().uri(url).retrieve().bodyToMono(String.class).block();
-                    } catch (Exception e) {
-                        log.warn("Backup prayer-times provider (Muslim Salat) failed: {}", e.getMessage());
-                    }
+                try {
+                    String dateStr = String.format("%02d-%02d-%d", 
+                        date.getDayOfMonth(), 
+                        date.getMonthValue(), 
+                        date.getYear());
+                    String url = String.format("%s/%s?city=%s&country=%s&method=2",
+                            backupApiUrl, dateStr, city, country);
+                    log.info("Fetching from backup API (Aladhan): {}", url);
+                    response = webClient.get().uri(url).retrieve().bodyToMono(String.class).block();
+                } catch (Exception e) {
+                    log.warn("Backup prayer-times provider (Aladhan) failed: {}", e.getMessage());
                 }
             }
 
             if (response != null && !response.isEmpty()) {
                 JsonNode root = objectMapper.readTree(response);
+
+                // Islamic API response: { data: { times: {...}, prohibited_times: {...}, ... } }
+                if (root.has("data") && root.get("data").has("times")) {
+                    JsonNode data = root.get("data");
+                    JsonNode times = data.get("times");
+                    JsonNode prohibitedTimes = data.path("prohibited_times");
+                    
+                    PrayerTime prayerTime = new PrayerTime();
+                    prayerTime.setDate(date);
+                    prayerTime.setFajr(cleanTime(times.path("Fajr").asText("06:00")));
+                    prayerTime.setSunrise(cleanTime(times.path("Sunrise").asText("07:30")));
+                    prayerTime.setDhuhr(cleanTime(times.path("Dhuhr").asText("12:30")));
+                    prayerTime.setAsr(cleanTime(times.path("Asr").asText("15:00")));
+                    prayerTime.setMaghrib(cleanTime(times.path("Maghrib").asText("17:30")));
+                    prayerTime.setIsha(cleanTime(times.path("Isha").asText("19:00")));
+                    
+                    // Set prohibited times from Islamic API
+                    JsonNode sunriseProhibited = prohibitedTimes.path("sunrise");
+                    if (!sunriseProhibited.isMissingNode()) {
+                        prayerTime.setSunriseProhibitedStart(sunriseProhibited.path("start").asText());
+                        prayerTime.setSunriseProhibitedEnd(sunriseProhibited.path("end").asText());
+                    }
+                    
+                    JsonNode noonProhibited = prohibitedTimes.path("noon");
+                    if (!noonProhibited.isMissingNode()) {
+                        prayerTime.setNoonProhibitedStart(noonProhibited.path("start").asText());
+                        prayerTime.setNoonProhibitedEnd(noonProhibited.path("end").asText());
+                    }
+                    
+                    JsonNode sunsetProhibited = prohibitedTimes.path("sunset");
+                    if (!sunsetProhibited.isMissingNode()) {
+                        prayerTime.setSunsetProhibitedStart(sunsetProhibited.path("start").asText());
+                        prayerTime.setSunsetProhibitedEnd(sunsetProhibited.path("end").asText());
+                    }
+                    
+                    // Set hijri date from Islamic API
+                    JsonNode hijriData = data.path("date").path("hijri");
+                    if (!hijriData.isMissingNode() && hijriData.has("day")) {
+                        String day = hijriData.path("day").asText();
+                        String month = hijriData.path("month").path("en").asText("");
+                        String year = hijriData.path("year").asText("");
+                        prayerTime.setHijriDate(day + " " + month + " " + year);
+                    }
+
+                    // Check if record exists, update if it does, otherwise insert
+                    Optional<PrayerTime> existing = prayerTimeRepository.findByDate(date);
+                    if (existing.isPresent()) {
+                        PrayerTime record = existing.get();
+                        record.setFajr(prayerTime.getFajr());
+                        record.setSunrise(prayerTime.getSunrise());
+                        record.setDhuhr(prayerTime.getDhuhr());
+                        record.setAsr(prayerTime.getAsr());
+                        record.setMaghrib(prayerTime.getMaghrib());
+                        record.setIsha(prayerTime.getIsha());
+                        record.setHijriDate(prayerTime.getHijriDate());
+                        record.setSunriseProhibitedStart(prayerTime.getSunriseProhibitedStart());
+                        record.setSunriseProhibitedEnd(prayerTime.getSunriseProhibitedEnd());
+                        record.setNoonProhibitedStart(prayerTime.getNoonProhibitedStart());
+                        record.setNoonProhibitedEnd(prayerTime.getNoonProhibitedEnd());
+                        record.setSunsetProhibitedStart(prayerTime.getSunsetProhibitedStart());
+                        record.setSunsetProhibitedEnd(prayerTime.getSunsetProhibitedEnd());
+                        prayerTimeRepository.save(record);
+                        log.info("Updated prayer times for {} from Islamic API", date);
+                    } else {
+                        prayerTimeRepository.save(prayerTime);
+                        log.info("Stored prayer times for {} from Islamic API", date);
+                    }
+                    return;
+                }
 
                 // Aladhan response: { data: { timings: { Fajr:..., ... }, date: { hijri: {...} } } }
                 if (root.has("data") && root.get("data").has("timings")) {

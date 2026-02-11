@@ -1,10 +1,11 @@
 import { useTranslation } from 'react-i18next';
-import { FaClock } from 'react-icons/fa';
+import { FaClock, FaExclamationTriangle } from 'react-icons/fa';
 import usePrayerTimes from '../hooks/usePrayerTimes';
 
 /**
  * Displays the next upcoming prayer time with countdown
  * Auto-updates every minute
+ * Also shows when it's a prohibited time for prayer
  */
 const NextPrayerCard = () => {
   const { t } = useTranslation();
@@ -29,6 +30,43 @@ const NextPrayerCard = () => {
 
   if (!prayerTimes || !nextPrayer) {
     return null;
+  }
+
+  // Check if current time is prohibited
+  if (nextPrayer.isProhibitedTime) {
+    return (
+      <div className="prayer-card relative overflow-hidden bg-gradient-to-br from-orange-50 to-red-50">
+        {/* Decorative background */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-red-400 opacity-5 rounded-full blur-2xl"></div>
+        
+        <div className="flex items-center justify-between mb-6 relative z-10">
+          <h3 className="font-bold text-xl text-red-600 flex items-center gap-2">
+            <FaExclamationTriangle className="text-red-500" />
+            {t('prayerTimes.prohibitedTime')}
+          </h3>
+        </div>
+        
+        <div className="text-center relative z-10">
+          <div className="bg-gradient-to-br from-red-100 to-orange-100 rounded-2xl p-6 mb-4 shadow-inner">
+            <p className="text-2xl font-bold mb-3 text-red-700 capitalize">
+              {nextPrayer.prohibitedType} {t('prayerTimes.prohibitedTimeLabel')}
+            </p>
+            <p className="text-lg text-gray-700 mb-2">
+              {t('prayerTimes.prohibitedTimeRange')}: <span className="font-bold text-red-600">{nextPrayer.prohibitedStart}</span> - <span className="font-bold text-red-600">{nextPrayer.prohibitedEnd}</span>
+            </p>
+            <p className="text-sm text-gray-600 italic">
+              {t('prayerTimes.prohibitedTimeMessage')}
+            </p>
+          </div>
+        </div>
+        
+        <div className="mt-6 pt-4 border-t border-red-200 relative z-10">
+          <p className="text-sm text-center font-semibold text-gray-700">
+            {t('prayerTimes.hijriDate')}: <span className="text-islamic-gold">{prayerTimes.hijriDate}</span>
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
