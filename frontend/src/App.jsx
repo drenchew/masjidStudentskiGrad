@@ -1,9 +1,10 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useEffect } from 'react';
-import { CartProvider } from './context/CartContext';
+import { useNotification } from './context/ToastContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import ToastContainer from './components/ToastContainer';
 import Home from './pages/Home';
 import PrayerTimes from './pages/PrayerTimes';
 import Khutbahs from './pages/Khutbahs';
@@ -29,6 +30,7 @@ import Questions from './pages/Questions';
 
 function App() {
   const { i18n } = useTranslation();
+  const { toasts, removeToast } = useNotification();
 
   useEffect(() => {
     // Set document direction based on language
@@ -37,7 +39,7 @@ function App() {
   }, [i18n.language]);
 
   return (
-    <CartProvider>
+    <>
       <Router>
         <div className="min-h-screen flex flex-col bg-gray-50">
           <Navbar />
@@ -69,10 +71,11 @@ function App() {
             </Routes>
           </main>
           <Footer />
+          <ToastContainer toasts={toasts} removeToast={removeToast} />
         </div>
       </Router>
-    </CartProvider>
+    </>
   );
 }
-
 export default App;
+

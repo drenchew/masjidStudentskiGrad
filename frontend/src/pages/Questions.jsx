@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNotification } from '../context/ToastContext';
 import axios from '../api/axios';
 
 export default function Questions() {
   const { t } = useTranslation();
+  const { success, error: showError } = useNotification();
   const [questions, setQuestions] = useState([]);
   const [newQuestion, setNewQuestion] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
     fetchQuestions();
@@ -21,7 +22,7 @@ export default function Questions() {
       setQuestions(response.data);
     } catch (error) {
       console.error('Error fetching questions:', error);
-      setMessage({ type: 'error', text: 'Failed to load questions' });
+      showError('Failed to load questions');
     } finally {
       setLoading(false);
     }
@@ -31,28 +32,21 @@ export default function Questions() {
     e.preventDefault();
     
     if (!newQuestion.trim()) {
-      setMessage({ type: 'error', text: t('questions.emptyQuestion') || 'Please enter a question' });
+      showError(t('questions.emptyQuestion') || 'Please enter a question');
       return;
     }
 
     setSubmitting(true);
-    setMessage({ type: '', text: '' });
 
     try {
       await axios.post('/api/questions', { questionText: newQuestion });
-      setMessage({ 
-        type: 'success', 
-        text: t('questions.submitSuccess') || 'Your question has been submitted successfully. It will be answered soon!' 
-      });
+      success(t('questions.submitSuccess') || 'Your question has been submitted successfully. It will be answered soon!');
       setNewQuestion('');
       // Refresh questions after submission
       fetchQuestions();
     } catch (error) {
       console.error('Error submitting question:', error);
-      setMessage({ 
-        type: 'error', 
-        text: t('questions.submitError') || 'Failed to submit question. Please try again.' 
-      });
+      showError(t('questions.submitError') || 'Failed to submit question. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -98,15 +92,6 @@ export default function Questions() {
               </button>
             </div>
           </form>
-
-          {/* Message Display */}
-          {message.text && (
-            <div className={`mt-4 p-4 rounded-lg ${
-              message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-            }`}>
-              {message.text}
-            </div>
-          )}
         </div>
 
         {/* Previously Answered Questions */}

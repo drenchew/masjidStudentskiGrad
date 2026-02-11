@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useNotification } from '../context/ToastContext';
 import axios from '../api/axios';
 import { FaShoppingCart, FaCheck, FaExclamationCircle } from 'react-icons/fa';
 import { validateField, validateEmail, sanitizeInput, VALIDATION_LIMITS } from '../utils/validationLimits';
@@ -10,6 +11,7 @@ export default function Checkout() {
   const { i18n, t } = useTranslation();
   const navigate = useNavigate();
   const { cartItems, getCartTotal, clearCart } = useCart();
+  const { success, error: showError, warning } = useNotification();
   const [loading, setLoading] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
@@ -133,6 +135,7 @@ export default function Checkout() {
     e.preventDefault();
     
     if (!validateForm()) {
+      showError(t('checkout.validationError') || 'Please fix the errors above');
       return;
     }
 
@@ -159,10 +162,11 @@ export default function Checkout() {
       setOrderNumber(response.data.orderNumber);
       setOrderComplete(true);
       clearCart();
+      success(t('checkout.orderSuccess') || 'Order placed successfully!');
     } catch (error) {
       console.error('Order submission error:', error);
-      const errorMsg = error.response?.data?.message || 'Failed to submit order. Please try again.';
-      setErrors({ submit: errorMsg });
+      const errorMsg = error.response?.data?.message || t('checkout.orderError') || 'Failed to submit order. Please try again.';
+      showError(errorMsg);
     } finally {
       setLoading(false);
     }
