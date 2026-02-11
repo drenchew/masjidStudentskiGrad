@@ -33,7 +33,7 @@ const Home = () => {
                   ❤️ {t('hero.donate')}
                 </span>
               </Link>
-              <Link to="/prayer-times" className="glass-effect text-white px-8 py-4 rounded-xl hover:bg-white hover:text-islamic-green transition-all font-bold shadow-2xl">
+              <Link to="/prayer-times" className="bg-islamic-gold text-islamic-darkGreen px-8 py-4 rounded-xl hover:bg-yellow-300 hover:scale-105 transition-all font-bold shadow-2xl flex items-center gap-2">
                 🕌 {t('nav.prayerTimes')}
               </Link>
             </div>
