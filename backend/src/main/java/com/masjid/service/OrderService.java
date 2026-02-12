@@ -7,6 +7,7 @@ import com.masjid.dto.OrderRequest;
 import com.masjid.repository.OrderRepository;
 import com.masjid.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderService {
@@ -29,6 +31,8 @@ public class OrderService {
      */
     @Transactional
     public Order createOrderFromRequest(OrderRequest request) {
+        log.info("Creating order from request for customer: {}", request.getCustomerName());
+        
         Order order = new Order();
         order.setCustomerName(request.getCustomerName());
         order.setCustomerEmail(request.getEmail());
@@ -42,7 +46,10 @@ public class OrderService {
         List<OrderItem> items = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
         
+        log.info("Processing {} items", request.getItems().size());
         for (OrderRequest.OrderItemRequest itemRequest : request.getItems()) {
+            log.info("Processing item - Product ID: {}, Quantity: {}", itemRequest.getProductId(), itemRequest.getQuantity());
+            
             Product product = productRepository.findById(itemRequest.getProductId())
                     .orElseThrow(() -> new RuntimeException("Product not found: " + itemRequest.getProductId()));
             
@@ -67,6 +74,7 @@ public class OrderService {
             // Decrease stock
             product.setStock(product.getStock() - itemRequest.getQuantity());
             productRepository.save(product);
+            log.info("Decreased stock for product {}: {} remaining", product.getNameEn(), product.getStock());
             
             items.add(item);
         }
@@ -78,14 +86,18 @@ public class OrderService {
         order.setStatus(Order.OrderStatus.PENDING);
         order.setOrderNumber(generateOrderNumber());
         
+        log.info("Saving order with number: {}", order.getOrderNumber());
         Order savedOrder = orderRepository.save(order);
+        log.info("Order saved successfully with ID: {}", savedOrder.getId());
         
-        // Send confirmation email
+        // Send confirmation email asynchronously (don't block order creation)
         try {
+            log.info("Attempting to send order confirmation email");
             emailService.sendOrderConfirmation(savedOrder);
+            log.info("Email sent successfully");
         } catch (Exception e) {
             // Log error but don't fail order creation
-            e.printStackTrace();
+            log.error("Failed to send order confirmation email, but order was created successfully", e);
         }
         
         return savedOrder;

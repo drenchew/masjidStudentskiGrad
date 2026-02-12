@@ -46,6 +46,14 @@ public class EmailService {
     }
     
     public void sendOrderConfirmation(Order order) {
+        log.info("Attempting to send order confirmation email to: {}", order.getCustomerEmail());
+        
+        // Check if mail configuration is available
+        if (mailUsername == null || mailUsername.isBlank() || mailPassword == null || mailPassword.isBlank()) {
+            log.warn("Mail server credentials not configured. Skipping email send.");
+            return;
+        }
+        
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
@@ -67,10 +75,13 @@ public class EmailService {
                     order.getOrderNumber()
             ));
             
+            log.info("Sending email via JavaMailSender...");
             mailSender.send(message);
-            log.info("Order confirmation email sent to {}", order.getCustomerEmail());
+            log.info("Order confirmation email sent successfully to {}", order.getCustomerEmail());
         } catch (Exception e) {
-            log.error("Failed to send order confirmation email: {}", e.getMessage());
+            log.error("Failed to send order confirmation email to {}: {} - {}", 
+                order.getCustomerEmail(), e.getClass().getSimpleName(), e.getMessage());
+            // Don't rethrow - email failure shouldn't block order creation
         }
     }
     
