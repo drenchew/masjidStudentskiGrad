@@ -42,6 +42,8 @@ public class Order {
     @Column(nullable = false)
     private String city;
     
+    private String postalCode;
+    
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal subtotal;
     

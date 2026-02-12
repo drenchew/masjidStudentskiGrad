@@ -35,6 +35,7 @@ public class OrderService {
         order.setCustomerPhone(request.getPhoneNumber());
         order.setDeliveryAddress(request.getShippingAddress());
         order.setCity(request.getCity());
+        order.setPostalCode(request.getPostalCode());
         order.setDeliveryNotes(request.getNotes());
         
         // Create order items from request
