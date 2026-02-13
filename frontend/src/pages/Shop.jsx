@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from '../api/axios';
 import { useCart } from '../context/CartContext';
-import { FaCheck } from 'react-icons/fa';
+import { FaCheck, FaInfoCircle } from 'react-icons/fa';
 
 export default function Shop() {
   const { t, i18n } = useTranslation();
@@ -10,10 +10,12 @@ export default function Shop() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [addedToCart, setAddedToCart] = useState({});
+  const [orderingEnabled, setOrderingEnabled] = useState(true);
   const { addToCart } = useCart();
 
   useEffect(() => {
     fetchProducts();
+    checkOrderingEnabled();
   }, []);
 
   const fetchProducts = async () => {
@@ -24,6 +26,17 @@ export default function Shop() {
       console.error('Error fetching products:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkOrderingEnabled = async () => {
+    try {
+      const response = await axios.get('/api/settings/public/shop-ordering-enabled');
+      setOrderingEnabled(response.data.enabled);
+    } catch (error) {
+      console.error('Error checking ordering status:', error);
+      // Default to enabled if there's an error
+      setOrderingEnabled(true);
     }
   };
 
@@ -66,6 +79,25 @@ export default function Shop() {
         <p className="text-center text-gray-600 mb-8">
           {t('shop.subtitle') || 'Browse our collection of authentic Islamic products'}
         </p>
+
+        {/* View-Only Mode Banner */}
+        {!orderingEnabled && (
+          <div className="max-w-3xl mx-auto mb-8 bg-blue-50 border-2 border-blue-300 rounded-xl p-4 flex items-start gap-3">
+            <FaInfoCircle className="text-blue-600 text-2xl flex-shrink-0 mt-1" />
+            <div>
+              <h3 className="font-bold text-blue-900 mb-1">
+                {i18n.language === 'ar' ? 'وضع العرض فقط' :
+                 i18n.language === 'bg' ? 'Режим само за преглед' :
+                 'View-Only Mode'}
+              </h3>
+              <p className="text-blue-800">
+                {i18n.language === 'ar' ? 'الطلبات عبر الإنترنت معطلة حاليًا. يرجى زيارة المسجد لشراء المنتجات شخصيًا.' :
+                 i18n.language === 'bg' ? 'Поръчките онлайн са временно деактивирани. Моля, посетете джамията за да закупите продукти лично.' :
+                 'Online ordering is currently disabled. Please visit the masjid to purchase products in person.'}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Category Filter */}
         <div className="flex flex-wrap justify-center gap-2 mb-8">
@@ -115,40 +147,42 @@ export default function Shop() {
                       {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
                     </span>
                   </div>
-                  <button
-                    disabled={product.stock === 0}
-                    onClick={() => {
-                      addToCart(product);
-                      setAddedToCart({ ...addedToCart, [product.id]: true });
-                      setTimeout(() => {
-                        setAddedToCart({ ...addedToCart, [product.id]: false });
-                      }, 2000);
-                    }}
-                    className={`w-full mt-4 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
-                      product.stock > 0
-                        ? addedToCart[product.id] 
-                          ? 'bg-green-600 text-white'
-                          : 'bg-islamic-green text-white hover:bg-islamic-darkGreen'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    }`}
-                  >
-                    {product.stock === 0 ? (
-                      i18n.language === 'ar' ? 'نفذت الكمية' :
-                      i18n.language === 'bg' ? 'Изчерпан' :
-                      'Out of Stock'
-                    ) : addedToCart[product.id] ? (
-                      <>
-                        <FaCheck />
-                        {i18n.language === 'ar' ? 'تمت الإضافة' :
-                         i18n.language === 'bg' ? 'Добавено' :
-                         'Added'}
-                      </>
-                    ) : (
-                      i18n.language === 'ar' ? 'أضف إلى السلة' :
-                      i18n.language === 'bg' ? 'Добави в количката' :
-                      'Add to Cart'
-                    )}
-                  </button>
+                  {orderingEnabled && (
+                    <button
+                      disabled={product.stock === 0}
+                      onClick={() => {
+                        addToCart(product);
+                        setAddedToCart({ ...addedToCart, [product.id]: true });
+                        setTimeout(() => {
+                          setAddedToCart({ ...addedToCart, [product.id]: false });
+                        }, 2000);
+                      }}
+                      className={`w-full mt-4 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
+                        product.stock > 0
+                          ? addedToCart[product.id] 
+                            ? 'bg-green-600 text-white'
+                            : 'bg-islamic-green text-white hover:bg-islamic-darkGreen'
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
+                      {product.stock === 0 ? (
+                        i18n.language === 'ar' ? 'نفذت الكمية' :
+                        i18n.language === 'bg' ? 'Изчерпан' :
+                        'Out of Stock'
+                      ) : addedToCart[product.id] ? (
+                        <>
+                          <FaCheck />
+                          {i18n.language === 'ar' ? 'تمت الإضافة' :
+                           i18n.language === 'bg' ? 'Добавено' :
+                           'Added'}
+                        </>
+                      ) : (
+                        i18n.language === 'ar' ? 'أضف إلى السلة' :
+                        i18n.language === 'bg' ? 'Добави в количката' :
+                        'Add to Cart'
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

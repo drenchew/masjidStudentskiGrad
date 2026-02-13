@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useNotification } from '../../context/ToastContext';
 import axios from '../../api/axios';
 import { FaBox, FaShippingFast, FaCheckCircle, FaSearch } from 'react-icons/fa';
 
@@ -10,6 +11,7 @@ export default function ManageOrders() {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingOrder, setEditingOrder] = useState(null);
   const navigate = useNavigate();
+  const { success, error: showError } = useNotification();
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
@@ -30,6 +32,8 @@ export default function ManageOrders() {
       console.error('Error fetching orders:', error);
       if (error.response?.status === 401) {
         navigate('/admin/login');
+      } else {
+        showError('Failed to fetch orders. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -46,10 +50,10 @@ export default function ManageOrders() {
       );
       fetchOrders(token);
       setEditingOrder(null);
-      alert('Order status updated successfully!');
+      success('Order status updated successfully!');
     } catch (error) {
       console.error('Error updating order:', error);
-      alert('Failed to update order status');
+      showError('Failed to update order status');
     }
   };
 

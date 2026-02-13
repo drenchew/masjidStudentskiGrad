@@ -24,6 +24,7 @@ import ManageAnnouncements from './pages/admin/ManageAnnouncements';
 import ManageRamadanVideos from './pages/admin/ManageRamadanVideos';
 import ManageQuestions from './pages/admin/ManageQuestions';
 import ManageCampaigns from './pages/admin/ManageCampaigns';
+import ManageSettings from './pages/admin/ManageSettings';
 import TestAuth from './pages/admin/TestAuth';
 import VerifySubscription from './pages/VerifySubscription';
 import Questions from './pages/Questions';
@@ -66,6 +67,7 @@ function App() {
               <Route path="/admin/ramadan-videos" element={<ManageRamadanVideos />} />
               <Route path="/admin/questions" element={<ManageQuestions />} />
               <Route path="/admin/campaigns" element={<ManageCampaigns />} />
+              <Route path="/admin/settings" element={<ManageSettings />} />
               <Route path="/admin/test-auth" element={<TestAuth />} />
               <Route path="/verify-subscription" element={<VerifySubscription />} />
             </Routes>

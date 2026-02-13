@@ -147,6 +147,12 @@ export default function AdminDashboard() {
               icon="🎯"
               onClick={() => navigate('/admin/campaigns')}
             />
+            <ActionButton
+              title="System Settings"
+              description="Configure shop ordering and other settings"
+              icon="⚙️"
+              onClick={() => navigate('/admin/settings')}
+            />
           </div>
         </div>
 
