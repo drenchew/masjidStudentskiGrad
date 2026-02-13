@@ -10,6 +10,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 @Slf4j
 @RestController
 @RequestMapping("/api/orders")
@@ -48,5 +52,36 @@ public class OrderController {
             @RequestParam String number, 
             @RequestParam String email) {
         return ResponseEntity.ok(orderService.getOrderByNumberAndEmail(number, email));
+    }
+    
+    // Admin endpoints
+    @GetMapping
+    public ResponseEntity<List<OrderResponse>> getAllOrders() {
+        log.info("Fetching all orders for admin");
+        List<Order> orders = orderService.getAllOrders();
+        List<OrderResponse> responses = orders.stream()
+                .map(OrderResponse::fromOrder)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responses);
+    }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<OrderResponse> getOrderById(@PathVariable Long id) {
+        Order order = orderService.getOrderById(id);
+        return ResponseEntity.ok(OrderResponse.fromOrder(order));
+    }
+    
+    @PutMapping("/{id}/status")
+    public ResponseEntity<OrderResponse> updateOrderStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> statusUpdate) {
+        String statusStr = statusUpdate.get("status");
+        String trackingNumber = statusUpdate.get("trackingNumber");
+        
+        log.info("Updating order {} status to {} with tracking: {}", id, statusStr, trackingNumber);
+        
+        Order.OrderStatus status = Order.OrderStatus.valueOf(statusStr);
+        Order updatedOrder = orderService.updateOrderStatus(id, status, trackingNumber, null);
+        return ResponseEntity.ok(OrderResponse.fromOrder(updatedOrder));
     }
 }

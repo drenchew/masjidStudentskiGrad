@@ -159,6 +159,11 @@ public class OrderService {
                 .orElseThrow(() -> new RuntimeException("Order not found"));
     }
     
+    public Order getOrderById(Long id) {
+        return orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found with ID: " + id));
+    }
+    
     public List<Order> getAllOrders() {
         return orderRepository.findAll();
     }
