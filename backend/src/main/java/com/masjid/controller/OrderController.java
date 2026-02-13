@@ -2,6 +2,7 @@ package com.masjid.controller;
 
 import com.masjid.model.Order;
 import com.masjid.dto.OrderRequest;
+import com.masjid.dto.OrderResponse;
 import com.masjid.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,7 @@ public class OrderController {
     private final OrderService orderService;
     
     @PostMapping
-    public ResponseEntity<Order> createOrder(@Valid @RequestBody OrderRequest request) {
+    public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody OrderRequest request) {
         log.info("=== ORDER CREATION STARTED ===");
         log.info("Customer: {}", request.getCustomerName());
         log.info("Email: {}", request.getEmail());
@@ -26,8 +27,10 @@ public class OrderController {
         
         try {
             Order order = orderService.createOrderFromRequest(request);
+            OrderResponse response = OrderResponse.fromOrder(order);
             log.info("=== ORDER CREATED SUCCESSFULLY === Order Number: {}", order.getOrderNumber());
-            return ResponseEntity.ok(order);
+            log.info("Returning response to frontend");
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("=== ORDER CREATION FAILED ===", e);
             throw e;
@@ -35,8 +38,9 @@ public class OrderController {
     }
     
     @PostMapping("/create")
-    public ResponseEntity<Order> createOrderLegacy(@Valid @RequestBody OrderRequest request) {
-        return ResponseEntity.ok(orderService.createOrderFromRequest(request));
+    public ResponseEntity<OrderResponse> createOrderLegacy(@Valid @RequestBody OrderRequest request) {
+        Order order = orderService.createOrderFromRequest(request);
+        return ResponseEntity.ok(OrderResponse.fromOrder(order));
     }
     
     @GetMapping("/track")

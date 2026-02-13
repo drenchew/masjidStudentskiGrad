@@ -90,11 +90,10 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
         log.info("Order saved successfully with ID: {}", savedOrder.getId());
         
-        // Send confirmation email asynchronously (don't block order creation)
+        // Send confirmation email (don't block order creation if it fails)
         try {
             log.info("Attempting to send order confirmation email");
             emailService.sendOrderConfirmation(savedOrder);
-            log.info("Email sent successfully");
         } catch (Exception e) {
             // Log error but don't fail order creation
             log.error("Failed to send order confirmation email, but order was created successfully", e);
