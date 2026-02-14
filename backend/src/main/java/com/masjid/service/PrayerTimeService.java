@@ -110,14 +110,32 @@ public class PrayerTimeService {
             // If primary failed or returned null, try backup provider (Aladhan)
             if (response == null || response.isEmpty()) {
                 try {
-                    // Use Aladhan API with exact format specified
-                    String url = String.format("%s?latitude=%s&longitude=%s&method=%d&school=%d",
-                            backupApiUrl, latitude, longitude, method, school);
+                    // Use Aladhan API with date format DD-MM-YYYY
+                    String dateStr = String.format("%02d-%02d-%d", 
+                        date.getDayOfMonth(), 
+                        date.getMonthValue(), 
+                        date.getYear());
+                    String url = String.format("%s/%s?latitude=%s&longitude=%s&method=%d&school=%d",
+                            backupApiUrl, dateStr, latitude, longitude, method, school);
                     log.info("Fetching from backup API (Aladhan): {}", url);
                     response = webClient.get().uri(url).retrieve().bodyToMono(String.class).block();
-                    usedPrimaryApi = false; // Mark that we're using backup
+                    
+                    // Validate backup API response is JSON
+                    if (response != null && !response.isEmpty()) {
+                        if (response.trim().startsWith("{") || response.trim().startsWith("[")) {
+                            log.info("Backup API (Aladhan) returned valid JSON response");
+                            usedPrimaryApi = false;
+                        } else {
+                            log.warn("Backup API (Aladhan) returned non-JSON response. First 200 chars: {}", 
+                                    response.length() > 200 ? response.substring(0, 200) : response);
+                            response = null;
+                        }
+                    } else {
+                        log.warn("Backup API (Aladhan) returned empty response");
+                        response = null;
+                    }
                 } catch (Exception e) {
-                    log.warn("Backup prayer-times provider (Aladhan) failed: {}", e.getMessage());
+                    log.error("Backup prayer-times provider (Aladhan) failed with exception: {}", e.getMessage(), e);
                     response = null;
                 }
             }
