@@ -58,8 +58,15 @@ public class PrayerTimeService {
             LocalDate today = LocalDate.now();
             fetchPrayerTimesForDate(today);
             
-            // Also fetch for next 7 days
+            // Also fetch for next 7 days with delay to avoid rate limiting
             for (int i = 1; i <= 7; i++) {
+                // Add 2 second delay between requests to avoid rate limiting
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    log.warn("Sleep interrupted while fetching prayer times");
+                }
                 fetchPrayerTimesForDate(today.plusDays(i));
             }
             

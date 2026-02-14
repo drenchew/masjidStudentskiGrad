@@ -85,7 +85,7 @@ app:
     method: 13
     school: 1
     api-key: ${ISLAMIC_API_KEY:}
-    backup-api-url: https://api.aladhan.com/v1/timingsByCity
+    backup-api-url: https://api.aladhan.com/v1/timings
     city: Sofia
     country: Bulgaria
   
