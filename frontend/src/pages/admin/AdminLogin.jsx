@@ -108,7 +108,7 @@ export default function AdminLogin() {
           </button>
 
           <div className="text-center text-sm text-gray-500">
-            Default credentials: admin / admin123
+            Masjid Studentski Grad All rights reserved &copy; {new Date().getFullYear()}
           </div>
         </form>
       </div>
