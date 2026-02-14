@@ -39,7 +39,7 @@ public class PrayerTimeService {
     private String longitude;
     
     @Value("${app.prayer-times.method:13}")
-    private int method;
+    private int method; // 13 = Turkey Diyanet
     
     @Value("${app.prayer-times.school:1}")
     private int school;
@@ -47,7 +47,7 @@ public class PrayerTimeService {
     @Value("${app.prayer-times.api-key:}")
     private String islamicApiKey;
     
-    @Value("${app.prayer-times.backup-api-url:https://api.aladhan.com/v1/timingsByCity}")
+    @Value("${app.prayer-times.backup-api-url:https://api.aladhan.com/v1/timings}")
     private String backupApiUrl;
     
     // Fetch prayer times every day at 3 AM
@@ -73,6 +73,7 @@ public class PrayerTimeService {
         try {
             WebClient webClient = webClientBuilder.build();
             String response = null;
+            boolean usedPrimaryApi = false;
 
             // Try primary provider (Islamic API) with latitude/longitude
             try {
@@ -83,30 +84,52 @@ public class PrayerTimeService {
                 }
                 log.info("Fetching from primary API (IslamicAPI): {}", url);
                 response = webClient.get().uri(url).retrieve().bodyToMono(String.class).block();
+                
+                // Check if response is valid JSON
+                if (response != null && !response.isEmpty()) {
+                    if (response.trim().startsWith("{") || response.trim().startsWith("[")) {
+                        usedPrimaryApi = true;
+                    } else {
+                        log.warn("Primary API returned non-JSON response (possibly HTML error page). First 200 chars: {}", 
+                                response.length() > 200 ? response.substring(0, 200) : response);
+                        response = null;
+                    }
+                }
             } catch (Exception e) {
                 log.warn("Primary prayer-times provider (IslamicAPI) failed: {}", e.getMessage());
+                response = null;
             }
 
             // If primary failed or returned null, try backup provider (Aladhan)
             if (response == null || response.isEmpty()) {
                 try {
-                    String dateStr = String.format("%02d-%02d-%d", 
-                        date.getDayOfMonth(), 
-                        date.getMonthValue(), 
-                        date.getYear());
-                    String url = String.format("%s/%s?city=%s&country=%s&method=2",
-                            backupApiUrl, dateStr, city, country);
+                    // Use Aladhan API with exact format specified
+                    String url = String.format("%s?latitude=%s&longitude=%s&method=%d&school=%d",
+                            backupApiUrl, latitude, longitude, method, school);
                     log.info("Fetching from backup API (Aladhan): {}", url);
                     response = webClient.get().uri(url).retrieve().bodyToMono(String.class).block();
+                    usedPrimaryApi = false; // Mark that we're using backup
                 } catch (Exception e) {
                     log.warn("Backup prayer-times provider (Aladhan) failed: {}", e.getMessage());
+                    response = null;
                 }
             }
 
-            if (response != null && !response.isEmpty()) {
-                JsonNode root = objectMapper.readTree(response);
+            if (response == null || response.isEmpty()) {
+                log.error("Failed to fetch prayer times from any provider for {}", date);
+                return;
+            }
 
-                // Islamic API response: { data: { times: {...}, prohibited_times: {...}, ... } }
+            JsonNode root;
+            try {
+                root = objectMapper.readTree(response);
+            } catch (Exception e) {
+                log.error("Failed to parse JSON response for {}. Response preview: {}", 
+                        date, response.length() > 300 ? response.substring(0, 300) + "..." : response);
+                return;
+            }
+
+            // Islamic API response: { data: { times: {...}, prohibited_times: {...}, ... } }
                 if (root.has("data") && root.get("data").has("times")) {
                     JsonNode data = root.get("data");
                     JsonNode times = data.get("times");
@@ -248,7 +271,6 @@ public class PrayerTimeService {
                     }
                     return;
                 }
-            }
             
             log.error("Failed to parse prayer times from any provider for {}", date);
         } catch (Exception e) {

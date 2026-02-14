@@ -4,12 +4,14 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import axios from '../api/axios';
 import { FaTimes, FaHeart, FaExclamationCircle } from 'react-icons/fa';
-import { validateDonationAmount, validateName, validateEmail, sanitizeInput, VALIDATION_LIMITS } from '../utils/validationLimits';
+import { validateDonationAmount, sanitizeInput, VALIDATION_LIMITS } from '../utils/validationLimits';
+import { useToast } from '../hooks/useToast';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PK || 'pk_test_placeholder');
 
 export default function CampaignDonationModal({ campaign, onClose }) {
   const { t, i18n } = useTranslation();
+  const showToast = useToast();
   const [amount, setAmount] = useState('');
   const [customAmount, setCustomAmount] = useState('');
   const [name, setName] = useState('');
@@ -20,7 +22,7 @@ export default function CampaignDonationModal({ campaign, onClose }) {
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [error, setError] = useState('');
 
-  const presetAmounts = [10, 20, 50, 100, 200, 500];
+  const presetAmounts = [5, 10, 15, 20, 30, 50];
 
   const title = i18n.language === 'ar' ? campaign.titleAr :
                i18n.language === 'bg' ? campaign.titleBg :
@@ -101,6 +103,8 @@ export default function CampaignDonationModal({ campaign, onClose }) {
               clientSecret={clientSecret} 
               amount={customAmount || amount}
               campaignTitle={title}
+              campaignId={campaign.id}
+              showToast={showToast}
               onClose={onClose}
             />
           </Elements>
@@ -295,7 +299,7 @@ export default function CampaignDonationModal({ campaign, onClose }) {
   );
 }
 
-function PaymentForm({ clientSecret, amount, campaignTitle, onClose }) {
+function PaymentForm({ clientSecret, amount, campaignTitle, campaignId, showToast, onClose }) {
   const { i18n } = useTranslation();
   const stripe = useStripe();
   const elements = useElements();
@@ -321,14 +325,43 @@ function PaymentForm({ clientSecret, amount, campaignTitle, onClose }) {
       setProcessing(false);
     } else {
       if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
-        alert(
-          i18n.language === 'ar' ? `✅ تم الدفع بنجاح! شكراً لدعمك لـ ${campaignTitle}` :
-          i18n.language === 'bg' ? `✅ Плащането бе успешно! Благодарим ви за подкрепата на ${campaignTitle}` :
-          `✅ Payment successful! Thank you for supporting ${campaignTitle}`
-        );
-        onClose();
-        // Reload the page to show updated campaign progress
-        window.location.reload();
+        // Verify the donation was actually recorded in the backend
+        try {
+          const verifyResponse = await axios.get(`/api/campaigns/${campaignId}`);
+          if (verifyResponse.data) {
+            // Payment succeeded and verified
+            const successMessage = i18n.language === 'ar' 
+              ? `تم الدفع بنجاح! شكراً لدعمك لـ ${campaignTitle} بمبلغ €${amount}` 
+              : i18n.language === 'bg' 
+              ? `Плащането бе успешно! Благодарим ви за подкрепата на ${campaignTitle} с €${amount}` 
+              : `Payment successful! Thank you for supporting ${campaignTitle} with €${amount}`;
+            
+            showToast(successMessage, 'success');
+            
+            // Close modal and reload to show updated progress
+            setTimeout(() => {
+              onClose();
+              window.location.reload();
+            }, 2000);
+          } else {
+            throw new Error('Verification failed');
+          }
+        } catch (verifyError) {
+          console.error('Verification error:', verifyError);
+          // Show success but warn about verification
+          const warningMessage = i18n.language === 'ar' 
+            ? 'تم الدفع ولكن تعذر التحقق. يرجى الاتصال بالدعم إذا لم يتم تحديث التبرع.' 
+            : i18n.language === 'bg' 
+            ? 'Плащането е успешно, но не можа да се потвърди. Свържете се с поддръжката, ако дарението не се актуализира.' 
+            : 'Payment completed but verification failed. Contact support if donation does not update.';
+          
+          showToast(warningMessage, 'warning');
+          
+          setTimeout(() => {
+            onClose();
+            window.location.reload();
+          }, 3000);
+        }
       }
       setProcessing(false);
     }

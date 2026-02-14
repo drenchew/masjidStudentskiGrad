@@ -5,9 +5,11 @@ import axios from '../api/axios';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import CampaignDonationModal from '../components/CampaignDonationModal';
+import { useToast } from '../hooks/useToast';
 
 export default function Donate() {
   const { t, i18n } = useTranslation();
+  const showToast = useToast();
   const [donationType, setDonationType] = useState('general'); // general, zakat
   const [amount, setAmount] = useState('');
   const [customAmount, setCustomAmount] = useState('');
@@ -15,6 +17,7 @@ export default function Donate() {
   const [loading, setLoading] = useState(false);
   const [showCardForm, setShowCardForm] = useState(false);
   const [clientSecret, setClientSecret] = useState(null);
+  const [donationId, setDonationId] = useState(null);
   const [campaigns, setCampaigns] = useState([]);
   const [loadingCampaigns, setLoadingCampaigns] = useState(true);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
@@ -69,9 +72,12 @@ export default function Donate() {
     const donationAmount = customAmount || amount;
 
     if (!donationAmount || parseFloat(donationAmount) <= 0) {
-      alert(i18n.language === 'ar' ? 'الرجاء إدخال مبلغ صالح' :
+      showToast(
+        i18n.language === 'ar' ? 'الرجاء إدخال مبلغ صالح' :
         i18n.language === 'bg' ? 'Моля, въведете валидна сума' :
-          'Please enter a valid amount');
+        'Please enter a valid amount',
+        'error'
+      );
       return;
     }
 
@@ -79,8 +85,6 @@ export default function Donate() {
 
     try {
       // Create donation intent with backend
-      // NOTE: backend currently exposes POST /api/donations/create which returns clientSecret
-      // We'll call that and then show a card form to confirm the payment using Elements.
       const response = await axios.post('/api/donations/create', {
         email: '',
         name: '',
@@ -90,16 +94,25 @@ export default function Donate() {
 
       if (response.data?.clientSecret) {
         setClientSecret(response.data.clientSecret);
+        setDonationId(response.data.id); // Store donation ID for verification
         setShowCardForm(true);
       } else {
-        alert('Payment setup failed: no clientSecret returned');
+        showToast(
+          i18n.language === 'ar' ? 'فشل إعداد الدفع' :
+          i18n.language === 'bg' ? 'Неуспешно настройване на плащане' :
+          'Payment setup failed',
+          'error'
+        );
       }
 
     } catch (error) {
       console.error('Donation error:', error);
-      alert(i18n.language === 'ar' ? 'حدث خطأ. يرجى المحاولة مرة أخرى.' :
+      showToast(
+        i18n.language === 'ar' ? 'حدث خطأ. يرجى المحاولة مرة أخرى.' :
         i18n.language === 'bg' ? 'Възникна грешка. Моля, опитайте отново.' :
-          'An error occurred. Please try again.');
+        'An error occurred. Please try again.',
+        'error'
+      );
     } finally {
       setLoading(false);
     }
@@ -509,8 +522,7 @@ export default function Donate() {
             {/* Stripe Integration Note */}
             <div className="mt-4 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
               <p className="text-sm text-blue-800">
-                <strong>ℹ️ Developer Note:</strong> Stripe integration is ready on the backend.
-                Add your Stripe Publishable Key to complete payment processing.
+                <strong>All payments are proceeded via Stripe</strong>
               </p>
             </div>
           </div>
@@ -521,7 +533,18 @@ export default function Donate() {
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
                 <div className="bg-white rounded-lg max-w-lg w-full p-6">
                   <h3 className="text-2xl font-bold mb-4">{i18n.language === 'ar' ? 'ادخل بيانات البطاقة' : i18n.language === 'bg' ? 'Въведете данни за картата' : 'Enter card details'}</h3>
-                  <CardPaymentForm clientSecret={clientSecret} onClose={() => { setShowCardForm(false); setClientSecret(null); }} />
+                  <CardPaymentForm 
+                    clientSecret={clientSecret} 
+                    donationId={donationId}
+                    amount={customAmount || amount}
+                    donationType={donationType}
+                    showToast={showToast}
+                    onClose={() => { 
+                      setShowCardForm(false); 
+                      setClientSecret(null); 
+                      setDonationId(null);
+                    }} 
+                  />
                 </div>
               </div>
             </Elements>
@@ -593,16 +616,18 @@ export default function Donate() {
   );
 }
 
-function CardPaymentForm({ clientSecret, onClose }) {
+function CardPaymentForm({ clientSecret, donationId, amount, donationType, showToast, onClose }) {
   const { i18n } = useTranslation();
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!stripe || !elements) return;
     setProcessing(true);
+    setError(null);
 
     const card = elements.getElement(CardElement);
     const result = await stripe.confirmCardPayment(clientSecret, {
@@ -612,14 +637,85 @@ function CardPaymentForm({ clientSecret, onClose }) {
     });
 
     if (result.error) {
-      alert((i18n.language === 'ar' ? 'خطأ في الدفع: ' : i18n.language === 'bg' ? 'Грешка при плащане: ' : 'Payment error: ') + result.error.message);
+      const errorMessage = i18n.language === 'ar' 
+        ? `خطأ في الدفع: ${result.error.message}` 
+        : i18n.language === 'bg' 
+        ? `Грешка при плащане: ${result.error.message}` 
+        : `Payment error: ${result.error.message}`;
+      
+      showToast(errorMessage, 'error');
+      setError(result.error.message);
       setProcessing(false);
     } else {
       if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
-        alert(i18n.language === 'ar' ? 'تم الدفع بنجاح، جزاكم الله خيراً' : i18n.language === 'bg' ? 'Плащането бе успешно, благодарим ви' : 'Payment successful, thank you');
-        onClose();
+        // Verify the donation was actually recorded in the backend
+        try {
+          if (donationId) {
+            const verifyResponse = await axios.get(`/api/donations/${donationId}`);
+            if (verifyResponse.data && verifyResponse.data.status === 'completed') {
+              // Payment succeeded and verified
+              const typeText = donationType === 'zakat' 
+                ? (i18n.language === 'ar' ? 'زكاة' : i18n.language === 'bg' ? 'Zakat' : 'Zakat')
+                : (i18n.language === 'ar' ? 'تبرع عام' : i18n.language === 'bg' ? 'общо дарение' : 'general donation');
+              
+              const successMessage = i18n.language === 'ar' 
+                ? `تم الدفع بنجاح! شكراً لدعمك بمبلغ €${amount} (${typeText})` 
+                : i18n.language === 'bg' 
+                ? `Плащането бе успешно! Благодарим ви за подкрепата с €${amount} (${typeText})` 
+                : `Payment successful! Thank you for your ${typeText} of €${amount}`;
+              
+              showToast(successMessage, 'success');
+              
+              setTimeout(() => {
+                onClose();
+                window.location.reload();
+              }, 2000);
+            } else {
+              throw new Error('Verification failed');
+            }
+          } else {
+            // No donation ID to verify, show success anyway
+            const typeText = donationType === 'zakat' 
+              ? (i18n.language === 'ar' ? 'زكاة' : i18n.language === 'bg' ? 'Zakat' : 'Zakat')
+              : (i18n.language === 'ar' ? 'تبرع' : i18n.language === 'bg' ? 'дарение' : 'donation');
+            
+            const successMessage = i18n.language === 'ar' 
+              ? `تم الدفع بنجاح، جزاكم الله خيراً! (${typeText}: €${amount})` 
+              : i18n.language === 'bg' 
+              ? `Плащането бе успешно, благодарим ви! (${typeText}: €${amount})` 
+              : `Payment successful, thank you! (${typeText}: €${amount})`;
+            
+            showToast(successMessage, 'success');
+            
+            setTimeout(() => {
+              onClose();
+              window.location.reload();
+            }, 2000);
+          }
+        } catch (verifyError) {
+          console.error('Verification error:', verifyError);
+          // Show success but warn about verification
+          const warningMessage = i18n.language === 'ar' 
+            ? 'تم الدفع ولكن تعذر التحقق. يرجى الاتصال بالدعم إذا لم يتم تحديث التبرع.' 
+            : i18n.language === 'bg' 
+            ? 'Плащането е успешно, но не можа да се потвърди. Свържете се с поддръжката, ако дарението не се актуализира.' 
+            : 'Payment completed but verification failed. Contact support if donation does not update.';
+          
+          showToast(warningMessage, 'warning');
+          
+          setTimeout(() => {
+            onClose();
+            window.location.reload();
+          }, 3000);
+        }
       } else {
-        alert(i18n.language === 'ar' ? 'Payment status: ' : i18n.language === 'bg' ? 'Статус на плащането: ' : 'Payment status: ' + (result.paymentIntent?.status || 'unknown'));
+        const statusMessage = i18n.language === 'ar' 
+          ? `حالة الدفع: ${result.paymentIntent?.status || 'غير معروف'}` 
+          : i18n.language === 'bg' 
+          ? `Статус на плащането: ${result.paymentIntent?.status || 'неизвестен'}` 
+          : `Payment status: ${result.paymentIntent?.status || 'unknown'}`;
+        
+        showToast(statusMessage, 'info');
       }
       setProcessing(false);
     }
@@ -628,18 +724,53 @@ function CardPaymentForm({ clientSecret, onClose }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="p-4 border rounded">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Card</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {i18n.language === 'ar' ? 'بطاقة الائتمان / الخصم' :
+           i18n.language === 'bg' ? 'Кредитна/дебитна карта' :
+           'Credit / Debit Card'}
+        </label>
         <div className="p-3 border rounded">
           <CardElement options={{ hidePostalCode: true }} />
         </div>
-        <p className="text-xs text-gray-500 mt-2">Use test card: 4242 4242 4242 4242 — any CVC, any future date.</p>
+        <p className="text-xs text-gray-500 mt-2">
+          {i18n.language === 'ar' ? '🧪 اختبر: 4242 4242 4242 4242 — أي CVC، أي تاريخ مستقبلي' :
+           i18n.language === 'bg' ? '🧪 Тест: 4242 4242 4242 4242 — всеки CVC, всяка бъдеща дата' :
+           '🧪 Test: 4242 4242 4242 4242 — any CVC, any future date'}
+        </p>
       </div>
 
+      {error && (
+        <div className="p-4 bg-red-50 border-2 border-red-200 rounded-xl">
+          <p className="text-sm text-red-800">❌ {error}</p>
+        </div>
+      )}
+
       <div className="flex gap-3">
-        <button type="submit" disabled={!stripe || processing} className="flex-1 bg-masjid-green text-white px-6 py-3 rounded-lg hover:bg-masjid-dark transition-colors font-semibold">
-          {processing ? 'Processing...' : 'Pay Now'}
+        <button 
+          type="submit" 
+          disabled={!stripe || processing} 
+          className="flex-1 bg-islamic-green text-white px-6 py-3 rounded-lg hover:bg-islamic-darkGreen transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {processing ? (
+            i18n.language === 'ar' ? '⏳ جاري المعالجة...' :
+            i18n.language === 'bg' ? '⏳ Обработка...' :
+            '⏳ Processing...'
+          ) : (
+            i18n.language === 'ar' ? '💳 ادفع الآن' :
+            i18n.language === 'bg' ? '💳 Платете сега' :
+            '💳 Pay Now'
+          )}
         </button>
-        <button type="button" onClick={onClose} className="px-6 py-3 bg-gray-300 rounded-lg">Cancel</button>
+        <button 
+          type="button" 
+          onClick={onClose} 
+          disabled={processing}
+          className="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-semibold disabled:opacity-50"
+        >
+          {i18n.language === 'ar' ? 'إلغاء' :
+           i18n.language === 'bg' ? 'Отказ' :
+           'Cancel'}
+        </button>
       </div>
     </form>
   );
