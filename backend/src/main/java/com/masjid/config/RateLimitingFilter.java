@@ -26,12 +26,10 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     // Tiered rate limits
     private static final int SENSITIVE_RATE_LIMIT = 10;      // 10/min for write operations (subscribe, donate, login)
     private static final int MODERATE_RATE_LIMIT = 100;      // 100/min for normal GET endpoints
-    private static final int UNLIMITED_RATE_LIMIT = 1000;     // 1000/min for cached read-only endpoints (effectively unlimited for normal use)
     private static final long WINDOW_MS = 60_000; // 1 minute
     
     private final Map<String, RateLimitBucket> moderateBuckets = new ConcurrentHashMap<>();
     private final Map<String, RateLimitBucket> sensitiveBuckets = new ConcurrentHashMap<>();
-    private final Map<String, RateLimitBucket> unlimitedBuckets = new ConcurrentHashMap<>();
     
     // Cleanup old entries every 5 minutes
     private final AtomicLong lastCleanup = new AtomicLong(System.currentTimeMillis());
@@ -51,27 +49,19 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             return;
         }
         
-        // Tier 1: High-frequency cached read-only endpoints - 1000/min (effectively unlimited for normal use)
-        boolean isUnlimitedEndpoint = "GET".equals(method) && (
+        // Tier 1: Completely skip rate limiting for high-frequency cached read-only endpoints
+        boolean isCachedEndpoint = "GET".equals(method) && (
             path.startsWith("/api/prayer-times") || 
             path.startsWith("/api/announcements") ||
             path.startsWith("/api/khutbahs") ||
             path.startsWith("/api/products") ||
             path.startsWith("/api/campaigns") ||
             path.startsWith("/api/ramadan-videos") ||
-            path.startsWith("/api/questions") ||
             path.startsWith("/api/settings/public") ||
             path.equals("/api/health-check") || 
             path.startsWith("/actuator/health"));
         
-        if (isUnlimitedEndpoint) {
-            if (!checkRate(unlimitedBuckets, clientIp, UNLIMITED_RATE_LIMIT)) {
-                log.warn("Unlimited tier rate limit exceeded for IP: {} on path: {} (possible scraper)", clientIp, path);
-                response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-                response.setContentType("application/json");
-                response.getWriter().write("{\"error\":\"Too many requests. Please slow down.\"}");
-                return;
-            }
+        if (isCachedEndpoint) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -134,7 +124,6 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     
     private void cleanup() {
         long expiry = System.currentTimeMillis() - WINDOW_MS * 2;
-        unlimitedBuckets.entrySet().removeIf(e -> e.getValue().lastAccess.get() < expiry);
         moderateBuckets.entrySet().removeIf(e -> e.getValue().lastAccess.get() < expiry);
         sensitiveBuckets.entrySet().removeIf(e -> e.getValue().lastAccess.get() < expiry);
     }

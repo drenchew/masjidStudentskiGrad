@@ -240,23 +240,38 @@ const usePrayerTimes = () => {
     }
   }, [calculateNextPrayer]);
 
-  // Initial fetch and setup interval for updates
+  // Initial fetch on mount and setup intervals
   useEffect(() => {
+    // Fetch prayer times once on component mount
     fetchPrayerTimes();
     
-    // Update every minute
-    const interval = setInterval(() => {
+    // Update next prayer calculation every minute (locally, no API call)
+    // This keeps the countdown timer accurate without hitting the API
+    const updateInterval = setInterval(() => {
       if (prayerTimes) {
         calculateNextPrayer(prayerTimes);
       }
-    }, 60000);
-
-    // Refetch prayer times every hour
-    const refetchInterval = setInterval(fetchPrayerTimes, 3600000);
+    }, 60000); // 60 seconds
+    
+    // Refetch prayer times once per day (at midnight) to get next day's times
+    // Calculate time until midnight
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    const timeUntilMidnight = tomorrow - now;
+    
+    const midnightTimeout = setTimeout(() => {
+      fetchPrayerTimes(); // Refetch at midnight
+      
+      // Then refetch every 24 hours
+      const dailyInterval = setInterval(fetchPrayerTimes, 86400000); // 24 hours
+      return () => clearInterval(dailyInterval);
+    }, timeUntilMidnight);
 
     return () => {
-      clearInterval(interval);
-      clearInterval(refetchInterval);
+      clearInterval(updateInterval);
+      clearTimeout(midnightTimeout);
     };
   }, [fetchPrayerTimes, prayerTimes, calculateNextPrayer]);
 

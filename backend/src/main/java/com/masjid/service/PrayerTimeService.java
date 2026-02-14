@@ -3,7 +3,9 @@ package com.masjid.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.masjid.model.PrayerTime;
+import com.masjid.model.PrayerTimeCache;
 import com.masjid.repository.PrayerTimeRepository;
+import com.masjid.repository.PrayerTimeCacheRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,6 +22,7 @@ import java.util.Optional;
 public class PrayerTimeService {
     
     private final PrayerTimeRepository prayerTimeRepository;
+    private final PrayerTimeCacheRepository prayerTimeCacheRepository;
     private final WebClient.Builder webClientBuilder;
     private final ObjectMapper objectMapper;
     
@@ -50,29 +53,98 @@ public class PrayerTimeService {
     @Value("${app.prayer-times.backup-api-url:https://api.aladhan.com/v1/timings}")
     private String backupApiUrl;
     
-    // Fetch prayer times every day at 3 AM
-    @Scheduled(cron = "0 0 3 * * *")
-    public void fetchAndStorePrayerTimes() {
-        log.info("Fetching prayer times from API...");
+    /**
+     * Fetch and store prayer times for the entire year (365/366 days)
+     * This runs once on application startup
+     */
+    @Scheduled(initialDelay = 5000, fixedDelay = Long.MAX_VALUE) // Run once after 5 seconds startup
+    public void fetchAndStoreFullYear() {
+        log.info("Starting full year prayer times fetch...");
+        
+        // Check if we already have data for today - if yes, skip to avoid re-fetching
+        LocalDate today = LocalDate.now();
+        if (prayerTimeCacheRepository.findByPrayerDate(today).isPresent()) {
+            log.info("Prayer times cache already populated for today, skipping full year fetch");
+            return;
+        }
+        
         try {
-            LocalDate today = LocalDate.now();
-            fetchPrayerTimesForDate(today);
+            LocalDate startDate = today;
+            LocalDate endDate = today.plusYears(1);
+            int daysTotal = (int) java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate);
+            int daysFetched = 0;
+            int daysSkipped = 0;
             
-            // Also fetch for next 7 days with delay to avoid rate limiting
-            for (int i = 1; i <= 7; i++) {
-                // Add 2 second delay between requests to avoid rate limiting
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    log.warn("Sleep interrupted while fetching prayer times");
+            log.info("Fetching prayer times for {} days from {} to {}", daysTotal, startDate, endDate);
+            
+            for (LocalDate date = startDate; date.isBefore(endDate); date = date.plusDays(1)) {
+                // Check if already cached to avoid re-fetching
+                if (prayerTimeCacheRepository.findByPrayerDate(date).isPresent()) {
+                    daysSkipped++;
+                    continue;
                 }
-                fetchPrayerTimesForDate(today.plusDays(i));
+                
+                try {
+                    fetchPrayerTimesForDate(date);
+                    daysFetched++;
+                    
+                    // Small delay between requests to avoid rate limiting (500ms = 2 req/sec)
+                    if (daysFetched % 10 == 0) { // More aggressive delay every 10 requests
+                        try {
+                            Thread.sleep(1000); // 1 second delay every 10 requests
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            log.warn("Sleep interrupted while fetching prayer times");
+                        }
+                    } else {
+                        try {
+                            Thread.sleep(500); // 500ms delay between requests
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to fetch prayer times for {}: {}", date, e.getMessage());
+                    // Continue to next date instead of stopping
+                }
             }
             
-            log.info("Prayer times fetched and stored successfully");
+            log.info("Full year prayer times fetch completed: {} fetched, {} already cached", daysFetched, daysSkipped);
         } catch (Exception e) {
-            log.error("Error fetching prayer times: {}", e.getMessage(), e);
+            log.error("Error fetching full year prayer times: {}", e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Refetch prayer times for today and tomorrow (daily refresh of recent data)
+     * Runs once daily at 3 AM to update with latest accurate times
+     */
+    @Scheduled(cron = "0 0 3 * * *")
+    public void refreshRecentPrayerTimes() {
+        log.info("Refreshing prayer times for today and tomorrow...");
+        try {
+            LocalDate today = LocalDate.now();
+            
+            // Delete old cache entries for today and tomorrow to refetch fresh
+            try {
+                prayerTimeCacheRepository.deleteByPrayerDate(today);
+                prayerTimeCacheRepository.deleteByPrayerDate(today.plusDays(1));
+            } catch (Exception e) {
+                log.debug("Could not delete old cache entries: {}", e.getMessage());
+            }
+            
+            // Refetch today and tomorrow
+            fetchPrayerTimesForDate(today);
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            fetchPrayerTimesForDate(today.plusDays(1));
+            
+            log.info("Prayer times refreshed for today and tomorrow");
+        } catch (Exception e) {
+            log.error("Error refreshing prayer times: {}", e.getMessage(), e);
         }
     }
     
@@ -357,23 +429,54 @@ public class PrayerTimeService {
     
     public PrayerTime getTodayPrayerTimes() {
         LocalDate today = LocalDate.now();
-        Optional<PrayerTime> prayerTime = prayerTimeRepository.findByDate(today);
         
-        // If not found, try to fetch immediately
-        if (prayerTime.isEmpty()) {
-            log.info("Prayer times not in database, fetching now...");
-            try {
-                fetchPrayerTimesForDate(today);
-                prayerTime = prayerTimeRepository.findByDate(today);
-            } catch (Exception e) {
-                log.error("Failed to fetch prayer times: {}", e.getMessage());
-                // Create fallback prayer times
-                return createFallbackPrayerTimes(today);
-            }
+        // Load from cache (should always be present since we preload the entire year)
+        Optional<PrayerTimeCache> cached = prayerTimeCacheRepository.findByPrayerDate(today);
+        if (cached.isPresent()) {
+            return convertCacheToPrayerTime(cached.get());
         }
         
-        // If still empty after fetch attempt, use fallback
-        return prayerTime.orElseGet(() -> createFallbackPrayerTimes(today));
+        log.warn("Prayer times not found in cache for {}, using fallback", today);
+        return createFallbackPrayerTimes(today);
+    }
+    
+    /**
+     * Convert cached prayer times to PrayerTime object
+     */
+    private PrayerTime convertCacheToPrayerTime(PrayerTimeCache cache) {
+        PrayerTime pt = new PrayerTime();
+        pt.setDate(cache.getPrayerDate());
+        pt.setFajr(cache.getFajr());
+        pt.setSunrise(cache.getSunrise());
+        pt.setDhuhr(cache.getDhuhr());
+        pt.setAsr(cache.getAsr());
+        pt.setMaghrib(cache.getMaghrib());
+        pt.setIsha(cache.getIsha());
+        pt.setHijriDate(cache.getHijriDate() != null ? cache.getHijriDate() : "");
+        return pt;
+    }
+    
+    /**
+     * Cache prayer times for faster future access
+     */
+    private void cachePrayerTime(LocalDate date, PrayerTime prayerTime) {
+        try {
+            PrayerTimeCache cache = PrayerTimeCache.builder()
+                .prayerDate(date)
+                .fajr(prayerTime.getFajr())
+                .sunrise(prayerTime.getSunrise())
+                .dhuhr(prayerTime.getDhuhr())
+                .asr(prayerTime.getAsr())
+                .maghrib(prayerTime.getMaghrib())
+                .isha(prayerTime.getIsha())
+                .hijriDate(prayerTime.getHijriDate())
+                .source("database")
+                .build();
+            prayerTimeCacheRepository.save(cache);
+            log.debug("Cached prayer times for {}", date);
+        } catch (Exception e) {
+            log.warn("Failed to cache prayer times for {}: {}", date, e.getMessage());
+        }
     }
     
     private PrayerTime createFallbackPrayerTimes(LocalDate date) {
@@ -391,19 +494,19 @@ public class PrayerTimeService {
     }
     
     public PrayerTime getPrayerTimesByDate(LocalDate date) {
-        Optional<PrayerTime> prayerTime = prayerTimeRepository.findByDate(date);
-        
-        // If not found, try to fetch immediately
-        if (prayerTime.isEmpty()) {
-            log.info("Prayer times not in database for {}, fetching now...", date);
-            try {
-                fetchPrayerTimesForDate(date);
-                prayerTime = prayerTimeRepository.findByDate(date);
-            } catch (Exception e) {
-                log.error("Failed to fetch prayer times for {}: {}", date, e.getMessage());
-            }
+        // Load from cache (should always be present since we preload the entire year)
+        Optional<PrayerTimeCache> cached = prayerTimeCacheRepository.findByPrayerDate(date);
+        if (cached.isPresent()) {
+            return convertCacheToPrayerTime(cached.get());
         }
         
-        return prayerTime.orElseThrow(() -> new RuntimeException("Prayer times not available for " + date));
+        // Fallback to legacy PrayerTime table if cache is missing
+        Optional<PrayerTime> prayerTime = prayerTimeRepository.findByDate(date);
+        if (prayerTime.isPresent()) {
+            return prayerTime.get();
+        }
+        
+        log.warn("Prayer times not available for {}", date);
+        return createFallbackPrayerTimes(date);
     }
 }
