@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useEffect } from 'react';
-import { useNotification } from './context/ToastContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ToastContainer from './components/ToastContainer';
@@ -30,7 +29,6 @@ import Questions from './pages/Questions';
 
 function App() {
   const { i18n } = useTranslation();
-  const { toasts, removeToast } = useNotification();
 
   useEffect(() => {
     // Set document direction based on language
@@ -71,7 +69,6 @@ function App() {
             </Routes>
           </main>
           <Footer />
-          <ToastContainer toasts={toasts} removeToast={removeToast} />
         </div>
       </Router>
     </>
