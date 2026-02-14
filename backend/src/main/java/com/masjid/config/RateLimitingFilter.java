@@ -23,14 +23,15 @@ import java.util.concurrent.atomic.AtomicLong;
 @Slf4j
 public class RateLimitingFilter extends OncePerRequestFilter {
     
-    // General rate limit: 100 requests per minute per IP
-    private static final int GENERAL_RATE_LIMIT = 100;
-    // Sensitive endpoints (subscribe, donate, questions): 10 per minute per IP
-    private static final int SENSITIVE_RATE_LIMIT = 10;
+    // Tiered rate limits
+    private static final int SENSITIVE_RATE_LIMIT = 10;      // 10/min for write operations (subscribe, donate, login)
+    private static final int MODERATE_RATE_LIMIT = 100;      // 100/min for normal GET endpoints
+    private static final int UNLIMITED_RATE_LIMIT = 1000;     // 1000/min for cached read-only endpoints (effectively unlimited for normal use)
     private static final long WINDOW_MS = 60_000; // 1 minute
     
-    private final Map<String, RateLimitBucket> generalBuckets = new ConcurrentHashMap<>();
+    private final Map<String, RateLimitBucket> moderateBuckets = new ConcurrentHashMap<>();
     private final Map<String, RateLimitBucket> sensitiveBuckets = new ConcurrentHashMap<>();
+    private final Map<String, RateLimitBucket> unlimitedBuckets = new ConcurrentHashMap<>();
     
     // Cleanup old entries every 5 minutes
     private final AtomicLong lastCleanup = new AtomicLong(System.currentTimeMillis());
@@ -46,6 +47,31 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         
         // Skip rate limiting for OPTIONS (CORS preflight)
         if ("OPTIONS".equals(method)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        
+        // Tier 1: High-frequency cached read-only endpoints - 1000/min (effectively unlimited for normal use)
+        boolean isUnlimitedEndpoint = "GET".equals(method) && (
+            path.startsWith("/api/prayer-times") || 
+            path.startsWith("/api/announcements") ||
+            path.startsWith("/api/khutbahs") ||
+            path.startsWith("/api/products") ||
+            path.startsWith("/api/campaigns") ||
+            path.startsWith("/api/ramadan-videos") ||
+            path.startsWith("/api/questions") ||
+            path.startsWith("/api/settings/public") ||
+            path.equals("/api/health-check") || 
+            path.startsWith("/actuator/health"));
+        
+        if (isUnlimitedEndpoint) {
+            if (!checkRate(unlimitedBuckets, clientIp, UNLIMITED_RATE_LIMIT)) {
+                log.warn("Unlimited tier rate limit exceeded for IP: {} on path: {} (possible scraper)", clientIp, path);
+                response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+                response.setContentType("application/json");
+                response.getWriter().write("{\"error\":\"Too many requests. Please slow down.\"}");
+                return;
+            }
             filterChain.doFilter(request, response);
             return;
         }
@@ -67,6 +93,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                 path.startsWith("/api/auth/login")
         );
         
+        // Tier 2: Sensitive write endpoints - 10/min
         if (isSensitive) {
             if (!checkRate(sensitiveBuckets, clientIp, SENSITIVE_RATE_LIMIT)) {
                 log.warn("Sensitive rate limit exceeded for IP: {} on path: {}", clientIp, path);
@@ -77,9 +104,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             }
         }
         
-        // General rate limit for all requests
-        if (!checkRate(generalBuckets, clientIp, GENERAL_RATE_LIMIT)) {
-            log.warn("General rate limit exceeded for IP: {}", clientIp);
+        // Tier 3: All other endpoints (admin, other GET/POST) - 100/min
+        if (!checkRate(moderateBuckets, clientIp, MODERATE_RATE_LIMIT)) {
+            log.warn("Moderate rate limit exceeded for IP: {} on path: {}", clientIp, path);
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"Too many requests. Please try again later.\"}");
@@ -107,7 +134,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     
     private void cleanup() {
         long expiry = System.currentTimeMillis() - WINDOW_MS * 2;
-        generalBuckets.entrySet().removeIf(e -> e.getValue().lastAccess.get() < expiry);
+        unlimitedBuckets.entrySet().removeIf(e -> e.getValue().lastAccess.get() < expiry);
+        moderateBuckets.entrySet().removeIf(e -> e.getValue().lastAccess.get() < expiry);
         sensitiveBuckets.entrySet().removeIf(e -> e.getValue().lastAccess.get() < expiry);
     }
     
