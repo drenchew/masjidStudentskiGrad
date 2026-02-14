@@ -5,11 +5,13 @@ import com.masjid.model.Subscriber;
 import com.masjid.repository.AnnouncementRepository;
 import com.masjid.repository.SubscriberRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AnnouncementService {
@@ -72,8 +74,7 @@ public class AnnouncementService {
                 }
             } catch (Exception e) {
                 // Log error but don't fail the creation
-                System.err.println("Failed to send announcement emails: " + e.getMessage());
-                e.printStackTrace();
+                log.error("Failed to send announcement emails", e);
             }
         }
         

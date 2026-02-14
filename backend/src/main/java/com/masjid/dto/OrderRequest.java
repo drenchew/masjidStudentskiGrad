@@ -46,6 +46,7 @@ public class OrderRequest {
     private String notes;
     
     @NotNull(message = "Items are required")
+    @Size(min = 1, max = 50, message = "Order must contain between 1 and 50 items")
     @Valid
     private List<OrderItemRequest> items;
     
@@ -137,7 +138,7 @@ public class OrderRequest {
         
         @NotNull(message = "Quantity is required")
         @Min(value = 1, message = "Quantity must be at least 1")
-        @Max(value = 999999, message = "Quantity cannot exceed 999,999")
+        @Max(value = 1000, message = "Quantity cannot exceed 1,000")
         private Integer quantity;
         
         @NotNull(message = "Price is required")

@@ -1,6 +1,5 @@
 package com.masjid.service;
 
-import com.google.gson.Gson;
 import com.masjid.exception.ResourceNotFoundException;
 import com.masjid.model.Donation;
 import com.masjid.model.FundraisingCampaign;
@@ -240,27 +239,13 @@ public class DonationService {
         Event event;
         
         if (webhookSecret == null || webhookSecret.isEmpty()) {
-            log.error("⚠️  PRODUCTION WARNING: Webhook secret not configured!");
-            log.error("   Donations will remain PENDING until webhooks are properly configured.");
-            log.error("   Campaign totals update optimistically but won't be verified.");
-            log.error("   Configure STRIPE_WEBHOOK_SECRET in backend/.env");
-            log.error("   See: STRIPE_WEBHOOK_SETUP.md for instructions");
-            
-            // Parse without verification (ONLY for development/testing)
-            // DO NOT use in production without webhook secret!
-            try {
-                Gson gson = new Gson();
-                event = gson.fromJson(payload, Event.class);
-                log.warn("   Parsing webhook WITHOUT signature verification (INSECURE)");
-            } catch (Exception e) {
-                log.error("Failed to parse webhook payload: {}", e.getMessage());
-                return;
-            }
-        } else {
-            // Production mode: verify signature for security
-            event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
-            log.info("✅ Webhook signature verified successfully");
+            log.error("CRITICAL: Webhook secret not configured! Rejecting webhook for security.");
+            throw new IllegalStateException("Webhook secret not configured. Cannot verify Stripe webhooks.");
         }
+        
+        // Production mode: always verify signature
+        event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
+        log.info("Webhook signature verified successfully");
         
         log.info("Received Stripe webhook event: {}", event.getType());
         

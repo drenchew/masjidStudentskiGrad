@@ -21,9 +21,10 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         
-        // Generate or retrieve request ID
+        // Generate or retrieve request ID (validate format if client-provided)
         String requestId = request.getHeader(REQUEST_ID_HEADER);
-        if (requestId == null || requestId.isBlank()) {
+        if (requestId == null || requestId.isBlank() || requestId.length() > 50 
+                || !requestId.matches("^[a-zA-Z0-9-]+$")) {
             requestId = UUID.randomUUID().toString();
         }
         

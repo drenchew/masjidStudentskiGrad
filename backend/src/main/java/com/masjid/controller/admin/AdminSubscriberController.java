@@ -77,7 +77,7 @@ public class AdminSubscriberController {
             ));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of(
-                "message", "Failed to send announcement: " + e.getMessage()
+                "message", "Failed to send announcement. Please try again later."
             ));
         }
     }

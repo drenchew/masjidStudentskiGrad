@@ -24,19 +24,15 @@ public class OrderController {
     
     @PostMapping
     public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody OrderRequest request) {
-        log.info("=== ORDER CREATION STARTED ===");
-        log.info("Customer: {}", request.getCustomerName());
-        log.info("Email: {}", request.getEmail());
-        log.info("Items count: {}", request.getItems() != null ? request.getItems().size() : 0);
+        log.info("Order creation started for customer: {}", request.getCustomerName());
         
         try {
             Order order = orderService.createOrderFromRequest(request);
             OrderResponse response = OrderResponse.fromOrder(order);
-            log.info("=== ORDER CREATED SUCCESSFULLY === Order Number: {}", order.getOrderNumber());
-            log.info("Returning response to frontend");
+            log.info("Order created successfully: {}", order.getOrderNumber());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("=== ORDER CREATION FAILED ===", e);
+            log.error("Order creation failed", e);
             throw e;
         }
     }
@@ -51,7 +47,15 @@ public class OrderController {
     public ResponseEntity<Order> trackOrder(
             @RequestParam String number, 
             @RequestParam String email) {
-        return ResponseEntity.ok(orderService.getOrderByNumberAndEmail(number, email));
+        // Validate order number format (alphanumeric with dashes, max 50 chars)
+        if (number == null || number.length() > 50 || !number.matches("^[a-zA-Z0-9-]+$")) {
+            return ResponseEntity.badRequest().build();
+        }
+        // Validate email format
+        if (email == null || email.length() > 255 || !email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(orderService.getOrderByNumberAndEmail(number, email.toLowerCase().trim()));
     }
     
     // Admin endpoints
@@ -78,9 +82,28 @@ public class OrderController {
         String statusStr = statusUpdate.get("status");
         String trackingNumber = statusUpdate.get("trackingNumber");
         
-        log.info("Updating order {} status to {} with tracking: {}", id, statusStr, trackingNumber);
+        if (statusStr == null || statusStr.isBlank()) {
+            throw new IllegalArgumentException("Status is required");
+        }
         
-        Order.OrderStatus status = Order.OrderStatus.valueOf(statusStr);
+        // Validate status is a known enum value
+        Order.OrderStatus status;
+        try {
+            status = Order.OrderStatus.valueOf(statusStr.toUpperCase().trim());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid order status: " + statusStr);
+        }
+        
+        // Sanitize tracking number
+        if (trackingNumber != null) {
+            trackingNumber = trackingNumber.trim().replaceAll("[<>\"';]", "");
+            if (trackingNumber.length() > 100) {
+                trackingNumber = trackingNumber.substring(0, 100);
+            }
+        }
+        
+        log.info("Updating order {} status to {}", id, status);
+        
         Order updatedOrder = orderService.updateOrderStatus(id, status, trackingNumber, null);
         return ResponseEntity.ok(OrderResponse.fromOrder(updatedOrder));
     }

@@ -14,15 +14,10 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
-      console.log('Attempting login with:', credentials.username);
       const response = await axios.post('/api/auth/login', credentials);
-      console.log('Login response:', response.data);
       
       localStorage.setItem('adminToken', response.data.token);
-      localStorage.setItem('adminUser', JSON.stringify(response.data));
-      
-      console.log('Token saved:', response.data.token.substring(0, 30) + '...');
-      console.log('Navigating to /admin/dashboard');
+      localStorage.setItem('adminUser', JSON.stringify({ type: response.data.type }));
       
       navigate('/admin/dashboard');
     } catch (err) {

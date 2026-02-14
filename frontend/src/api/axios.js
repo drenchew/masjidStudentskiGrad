@@ -47,7 +47,6 @@ instance.interceptors.response.use(
     if (shouldRetry) {
       // Exponential backoff: 1s, 2s, 4s
       const delay = Math.pow(2, retryCount[key] - 1) * 1000;
-      console.log(`Retrying request to ${key} in ${delay}ms (attempt ${retryCount[key]})`);
       
       return new Promise(resolve => setTimeout(() => resolve(instance(error.config)), delay));
     }
@@ -55,7 +54,7 @@ instance.interceptors.response.use(
     // Don't auto-redirect here, let components handle it
     // This prevents redirect loops
     if (error.response?.status === 401 || error.response?.status === 403) {
-      console.log('Auth error detected, components will handle redirect');
+      // Auth error - components will handle redirect
     }
     
     return Promise.reject(error);

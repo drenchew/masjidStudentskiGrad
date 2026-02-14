@@ -30,10 +30,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Skip JWT processing for public endpoints
         String path = request.getRequestURI();
         
-        logger.info("=== JWT Filter Debug ===");
-        logger.info("Path: " + path);
-        logger.info("Method: " + request.getMethod());
-        
         if (path.startsWith("/api/auth/") || 
             path.startsWith("/api/public/") ||
             path.startsWith("/api/prayer-times/") ||
@@ -43,33 +39,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             path.startsWith("/api/donations/webhook") ||
             path.startsWith("/api/orders/create") ||
             path.startsWith("/api/khutbahs/public/")) {
-            logger.info("Public endpoint, skipping JWT");
             filterChain.doFilter(request, response);
             return;
         }
         
         try {
             String jwt = getJwtFromRequest(request);
-            logger.info("JWT present: " + (jwt != null && !jwt.isEmpty()));
             
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
                 String username = tokenProvider.getUsernameFromJWT(jwt);
-                logger.info("JWT valid, username: " + username);
                 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                logger.info("User authorities: " + userDetails.getAuthorities());
                 
                 UsernamePasswordAuthenticationToken authentication = 
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-                logger.info("Authentication set successfully");
-            } else {
-                logger.warn("JWT validation failed or not present");
             }
         } catch (Exception ex) {
-            logger.error("Could not set user authentication in security context", ex);
+            logger.error("Could not set user authentication in security context");
         }
         
         filterChain.doFilter(request, response);

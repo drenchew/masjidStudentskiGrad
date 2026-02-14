@@ -14,7 +14,7 @@ spring:
   
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
@@ -29,8 +29,8 @@ spring:
   servlet:
     multipart:
       enabled: true
-      max-file-size: 50MB
-      max-request-size: 50MB
+      max-file-size: 10MB
+      max-request-size: 10MB
   
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
@@ -48,8 +48,8 @@ spring:
 server:
   port: ${PORT:8080}
   error:
-    include-message: always
-    include-binding-errors: always
+    include-message: never
+    include-binding-errors: never
     include-stacktrace: never
     include-exception: false
   compression:
@@ -68,7 +68,7 @@ server:
 # Application specific properties
 app:
   jwt:
-    secret: ${JWT_SECRET:myDefaultSecretKeyThatShouldBeChangedInProduction}
+    secret: ${JWT_SECRET:}  # MUST be set via environment variable - app will fail to start without it
     expiration: ${JWT_EXPIRATION:86400000}
     
   stripe:
@@ -102,7 +102,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health
   endpoint:
     health:
       show-details: when-authorized

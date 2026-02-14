@@ -31,7 +31,7 @@ public class OrderService {
      */
     @Transactional
     public Order createOrderFromRequest(OrderRequest request) {
-        log.info("Creating order from request for customer: {}", request.getCustomerName());
+        log.info("Creating order for customer");
         
         Order order = new Order();
         order.setCustomerName(request.getCustomerName());
@@ -42,13 +42,24 @@ public class OrderService {
         order.setPostalCode(request.getPostalCode());
         order.setDeliveryNotes(request.getNotes());
         
+        // Validate items list
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new IllegalArgumentException("Order must contain at least one item");
+        }
+        
+        if (request.getItems().size() > 50) {
+            throw new IllegalArgumentException("Order cannot contain more than 50 items");
+        }
+        
         // Create order items from request
         List<OrderItem> items = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
         
-        log.info("Processing {} items", request.getItems().size());
         for (OrderRequest.OrderItemRequest itemRequest : request.getItems()) {
-            log.info("Processing item - Product ID: {}, Quantity: {}", itemRequest.getProductId(), itemRequest.getQuantity());
+            // Validate item data
+            if (itemRequest.getQuantity() <= 0 || itemRequest.getQuantity() > 1000) {
+                throw new IllegalArgumentException("Invalid quantity for product");
+            }
             
             Product product = productRepository.findById(itemRequest.getProductId())
                     .orElseThrow(() -> new RuntimeException("Product not found: " + itemRequest.getProductId()));
@@ -58,23 +69,31 @@ public class OrderService {
                 throw new RuntimeException("Insufficient stock for product: " + product.getNameEn());
             }
             
+            // Verify price matches (prevent price manipulation)
+            BigDecimal serverPrice = product.getPrice();
+            BigDecimal clientPrice = BigDecimal.valueOf(itemRequest.getPrice());
+            if (serverPrice.compareTo(clientPrice) != 0) {
+                log.warn("Price mismatch detected for product {}: server={}, client={}", 
+                        product.getId(), serverPrice, clientPrice);
+                // Use the server-side price (authoritative)
+                itemRequest.setPrice(serverPrice.doubleValue());
+            }
+            
             OrderItem item = new OrderItem();
             item.setOrder(order);
             item.setProduct(product);
             item.setQuantity(itemRequest.getQuantity());
-            item.setPriceAtOrder(BigDecimal.valueOf(itemRequest.getPrice()));
+            item.setPriceAtOrder(serverPrice); // Always use server price
             item.setProductNameEn(product.getNameEn());
             item.setProductNameBg(product.getNameBg());
             item.setProductNameAr(product.getNameAr());
             
-            // Calculate subtotal
-            BigDecimal itemTotal = BigDecimal.valueOf(itemRequest.getPrice()).multiply(new BigDecimal(itemRequest.getQuantity()));
+            BigDecimal itemTotal = serverPrice.multiply(new BigDecimal(itemRequest.getQuantity()));
             subtotal = subtotal.add(itemTotal);
             
             // Decrease stock
             product.setStock(product.getStock() - itemRequest.getQuantity());
             productRepository.save(product);
-            log.info("Decreased stock for product {}: {} remaining", product.getNameEn(), product.getStock());
             
             items.add(item);
         }

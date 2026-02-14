@@ -27,6 +27,10 @@ public class ProductController {
     
     @GetMapping("/category/{category}")
     public ResponseEntity<List<Product>> getProductsByCategory(@PathVariable String category) {
+        // Validate category format (alphanumeric, underscores, hyphens, max 50 chars)
+        if (category == null || category.length() > 50 || !category.matches("^[a-zA-Z0-9_-]+$")) {
+            return ResponseEntity.badRequest().build();
+        }
         return ResponseEntity.ok(productService.getProductsByCategory(category));
     }
 }

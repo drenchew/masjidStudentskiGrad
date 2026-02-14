@@ -97,13 +97,24 @@ public class ValidationConstraints {
     }
 
     /**
-     * Sanitize string input
+     * Sanitize string input - removes HTML tags, script content, and dangerous characters
      */
     public static String sanitize(String input) {
         if (input == null) return "";
-        return input.trim()
-                .replaceAll("[<>]", "") // Remove potential HTML tags
-                .substring(0, Math.min(input.length(), 5000)); // Max 5000 chars
+        String sanitized = input.trim();
+        // Remove script tags and their content
+        sanitized = sanitized.replaceAll("(?i)<script[^>]*>.*?</script>", "");
+        // Remove all HTML tags
+        sanitized = sanitized.replaceAll("<[^>]*>", "");
+        // Remove javascript: and data: protocol handlers
+        sanitized = sanitized.replaceAll("(?i)javascript:", "");
+        sanitized = sanitized.replaceAll("(?i)data:", "");
+        // Remove event handler attributes
+        sanitized = sanitized.replaceAll("(?i)on\\w+=", "");
+        // Remove dangerous characters that could be used for injection
+        sanitized = sanitized.replaceAll("[<>\"';\\\\]", "");
+        // Truncate to max length
+        return sanitized.substring(0, Math.min(sanitized.length(), 5000));
     }
 
     /**

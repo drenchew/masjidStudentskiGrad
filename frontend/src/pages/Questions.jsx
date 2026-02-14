@@ -31,22 +31,36 @@ export default function Questions() {
   const handleSubmitQuestion = async (e) => {
     e.preventDefault();
     
-    if (!newQuestion.trim()) {
+    const trimmed = newQuestion.trim();
+    
+    if (!trimmed) {
       showError(t('questions.emptyQuestion') || 'Please enter a question');
+      return;
+    }
+    
+    if (trimmed.length < 5) {
+      showError('Question must be at least 5 characters');
+      return;
+    }
+    
+    if (trimmed.length > 5000) {
+      showError('Question cannot exceed 5000 characters');
       return;
     }
 
     setSubmitting(true);
 
     try {
-      await axios.post('/api/questions', { questionText: newQuestion });
+      await axios.post('/api/questions', { questionText: trimmed });
       success(t('questions.submitSuccess') || 'Your question has been submitted successfully. It will be answered soon!');
       setNewQuestion('');
       // Refresh questions after submission
       fetchQuestions();
     } catch (error) {
       console.error('Error submitting question:', error);
-      showError(t('questions.submitError') || 'Failed to submit question. Please try again.');
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || 
+        t('questions.submitError') || 'Failed to submit question. Please try again.';
+      showError(errorMsg);
     } finally {
       setSubmitting(false);
     }
@@ -77,6 +91,7 @@ export default function Questions() {
               placeholder={t('questions.placeholder') || 'Type your question here...'}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-masjid-green focus:border-transparent"
               rows="5"
+              maxLength={5000}
               disabled={submitting}
             />
             <div className="mt-4 flex items-center justify-between">

@@ -111,9 +111,6 @@ const PrayerTimesWidget = () => {
       const mins = parseTimeToMinutes(p.time);
       if (mins === null) continue;
       const prayerDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), Math.floor(mins / 60), mins % 60, 0, 0);
-      // Debug logging to help trace why a particular prayer was/wasn't chosen
-      // eslint-disable-next-line no-console
-      console.debug('Prayer', p.name, 'timeStr=', p.time, 'parsedMins=', mins, 'prayerDate=', prayerDate.toString(), 'now=', now.toString());
       if (prayerDate.getTime() > now.getTime()) {
         const diffMs = prayerDate.getTime() - now.getTime();
         const diffMins = Math.floor(diffMs / 60000);

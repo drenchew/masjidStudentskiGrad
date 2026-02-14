@@ -84,14 +84,15 @@ public class AuthController {
      */
     private String getClientIP(HttpServletRequest request) {
         String xfHeader = request.getHeader("X-Forwarded-For");
-        if (xfHeader == null) {
+        if (xfHeader == null || xfHeader.isEmpty()) {
             return request.getRemoteAddr();
         }
-        return xfHeader.split(",")[0].trim();
-    }
-
-    @GetMapping("/test")
-    public ResponseEntity<String> test() {
-        return ResponseEntity.ok("Auth endpoint is reachable!");
+        // Only trust the first IP in the chain (client IP)
+        String clientIp = xfHeader.split(",")[0].trim();
+        // Basic validation to prevent log injection
+        if (clientIp.matches("^[0-9a-fA-F.:]+$")) {
+            return clientIp;
+        }
+        return request.getRemoteAddr();
     }
 }

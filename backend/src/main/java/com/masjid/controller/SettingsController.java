@@ -25,6 +25,10 @@ public class SettingsController {
     
     @GetMapping("/{key}")
     public ResponseEntity<String> getSetting(@PathVariable String key) {
+        // Validate key format to prevent injection
+        if (key == null || !key.matches("^[a-zA-Z0-9._-]{1,100}$")) {
+            return ResponseEntity.badRequest().build();
+        }
         String value = settingsService.getSetting(key, null);
         if (value == null) {
             return ResponseEntity.notFound().build();
@@ -36,10 +40,14 @@ public class SettingsController {
     public ResponseEntity<Settings> updateSetting(
             @PathVariable String key,
             @RequestBody Map<String, String> body) {
+        // Validate key format
+        if (key == null || !key.matches("^[a-zA-Z0-9._-]{1,100}$")) {
+            return ResponseEntity.badRequest().build();
+        }
         String value = body.get("value");
         String description = body.get("description");
         
-        log.info("Updating setting: {} = {}", key, value);
+        log.info("Updating setting: {}", key);
         Settings updated = settingsService.updateSetting(key, value, description);
         return ResponseEntity.ok(updated);
     }

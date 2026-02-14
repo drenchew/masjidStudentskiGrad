@@ -30,18 +30,11 @@ export default function ManageCampaigns() {
     const token = localStorage.getItem('adminToken');
     const userData = localStorage.getItem('adminUser');
     
-    console.log('=== ManageCampaigns Debug ===');
-    console.log('Token exists:', !!token);
-    console.log('User data exists:', !!userData);
-    console.log('Token value:', token ? token.substring(0, 30) + '...' : 'null');
-    
     if (!token || !userData) {
-      console.log('No token/user data, redirecting to login');
       navigate('/admin/login');
       return;
     }
     
-    console.log('Token and user data present, fetching campaigns');
     fetchCampaigns();
   }, [navigate]);
 
@@ -49,23 +42,16 @@ export default function ManageCampaigns() {
     try {
       const token = localStorage.getItem('adminToken');
       if (!token) {
-        console.log('No token found, redirecting to login');
         navigate('/admin/login');
         return;
       }
       
-      console.log('Fetching campaigns with token (length:', token.length + ')');
-      console.log('Full token:', token);
       const response = await axios.get('/api/admin/campaigns', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      console.log('Campaigns fetched successfully:', response.data);
       setCampaigns(response.data);
     } catch (error) {
-      console.error('Error fetching campaigns:', error);
-      console.error('Error response:', error.response?.status, error.response?.data);
       if (error.response?.status === 401 || error.response?.status === 403) {
-        console.log('Auth error, redirecting to login');
         localStorage.removeItem('adminToken');
         localStorage.removeItem('adminUser');
         navigate('/admin/login');

@@ -63,15 +63,60 @@ public class KhutbahService {
     }
     
     public String uploadFile(MultipartFile file, String type) throws IOException {
+        // Validate type parameter (prevent path traversal)
+        if (type == null || !type.matches("^(audio|pdf|video)$")) {
+            throw new IllegalArgumentException("Invalid file type. Must be audio, pdf, or video.");
+        }
+        
+        // Validate file is not empty
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("File is empty");
+        }
+        
+        // Validate file size (max 50MB for audio/video)
+        long maxSize = 50 * 1024 * 1024; // 50MB
+        if (file.getSize() > maxSize) {
+            throw new IllegalArgumentException("File size exceeds maximum allowed size of 50MB");
+        }
+        
+        // Validate MIME type
+        String contentType = file.getContentType();
+        java.util.Set<String> allowedTypes = java.util.Set.of(
+            "audio/mpeg", "audio/mp3", "audio/wav", "audio/ogg",
+            "video/mp4", "video/webm",
+            "application/pdf"
+        );
+        if (contentType == null || !allowedTypes.contains(contentType.toLowerCase())) {
+            throw new IllegalArgumentException("File type not allowed");
+        }
+        
         String uploadDir = "uploads/khutbahs/" + type + "/";
-        Path uploadPath = Paths.get(uploadDir);
+        Path uploadPath = Paths.get(uploadDir).normalize();
         
         if (!Files.exists(uploadPath)) {
             Files.createDirectories(uploadPath);
         }
         
-        String filename = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-        Path filePath = uploadPath.resolve(filename);
+        // Use UUID-only filename to prevent path traversal
+        String originalFilename = file.getOriginalFilename();
+        String extension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
+        }
+        // Validate extension
+        java.util.Set<String> allowedExtensions = java.util.Set.of(".mp3", ".wav", ".ogg", ".mp4", ".webm", ".pdf");
+        if (!allowedExtensions.contains(extension)) {
+            throw new IllegalArgumentException("File extension not allowed");
+        }
+        
+        String filename = UUID.randomUUID().toString() + extension;
+        Path filePath = uploadPath.resolve(filename).normalize();
+        
+        // Ensure the file path is still within the upload directory
+        if (!filePath.startsWith(uploadPath)) {
+            throw new SecurityException("Invalid file path");
+        }
+        
         Files.copy(file.getInputStream(), filePath);
         
         return "/uploads/khutbahs/" + type + "/" + filename;

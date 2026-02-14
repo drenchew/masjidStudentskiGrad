@@ -198,28 +198,7 @@ public class PrayerTimeService {
                     }
 
                     // Check if record exists, update if it does, otherwise insert
-                    Optional<PrayerTime> existing = prayerTimeRepository.findByDate(date);
-                    if (existing.isPresent()) {
-                        PrayerTime record = existing.get();
-                        record.setFajr(prayerTime.getFajr());
-                        record.setSunrise(prayerTime.getSunrise());
-                        record.setDhuhr(prayerTime.getDhuhr());
-                        record.setAsr(prayerTime.getAsr());
-                        record.setMaghrib(prayerTime.getMaghrib());
-                        record.setIsha(prayerTime.getIsha());
-                        record.setHijriDate(prayerTime.getHijriDate());
-                        record.setSunriseProhibitedStart(prayerTime.getSunriseProhibitedStart());
-                        record.setSunriseProhibitedEnd(prayerTime.getSunriseProhibitedEnd());
-                        record.setNoonProhibitedStart(prayerTime.getNoonProhibitedStart());
-                        record.setNoonProhibitedEnd(prayerTime.getNoonProhibitedEnd());
-                        record.setSunsetProhibitedStart(prayerTime.getSunsetProhibitedStart());
-                        record.setSunsetProhibitedEnd(prayerTime.getSunsetProhibitedEnd());
-                        prayerTimeRepository.save(record);
-                        log.info("Updated prayer times for {} from Islamic API", date);
-                    } else {
-                        prayerTimeRepository.save(prayerTime);
-                        log.info("Stored prayer times for {} from Islamic API", date);
-                    }
+                    savePrayerTime(prayerTime, date, "Islamic API");
                     return;
                 }
 
@@ -244,22 +223,7 @@ public class PrayerTimeService {
                     }
 
                     // Check if record exists, update if it does, otherwise insert
-                    Optional<PrayerTime> existing = prayerTimeRepository.findByDate(date);
-                    if (existing.isPresent()) {
-                        PrayerTime record = existing.get();
-                        record.setFajr(prayerTime.getFajr());
-                        record.setSunrise(prayerTime.getSunrise());
-                        record.setDhuhr(prayerTime.getDhuhr());
-                        record.setAsr(prayerTime.getAsr());
-                        record.setMaghrib(prayerTime.getMaghrib());
-                        record.setIsha(prayerTime.getIsha());
-                        record.setHijriDate(prayerTime.getHijriDate());
-                        prayerTimeRepository.save(record);
-                        log.info("Updated prayer times for {} from Aladhan API", date);
-                    } else {
-                        prayerTimeRepository.save(prayerTime);
-                        log.info("Stored prayer times for {} from Aladhan API", date);
-                    }
+                    savePrayerTime(prayerTime, date, "Aladhan API");
                     return;
                 }
 
@@ -278,9 +242,67 @@ public class PrayerTimeService {
                     prayerTime.setHijriDate("");
 
                     // Check if record exists, update if it does, otherwise insert
-                    Optional<PrayerTime> existingRecord = prayerTimeRepository.findByDate(date);
-                    if (existingRecord.isPresent()) {
-                        PrayerTime record = existingRecord.get();
+                    savePrayerTime(prayerTime, date, "Muslim Salat API");
+                    return;
+                }
+            
+            log.error("Failed to parse prayer times from any provider for {}", date);
+        } catch (Exception e) {
+            log.error("Error fetching prayer times for {}: {}", date, e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Helper method to save or update prayer times, handling duplicate key scenarios
+     */
+    private void savePrayerTime(PrayerTime prayerTime, LocalDate date, String source) {
+        try {
+            Optional<PrayerTime> existing = prayerTimeRepository.findByDate(date);
+            if (existing.isPresent()) {
+                PrayerTime record = existing.get();
+                record.setFajr(prayerTime.getFajr());
+                record.setSunrise(prayerTime.getSunrise());
+                record.setDhuhr(prayerTime.getDhuhr());
+                record.setAsr(prayerTime.getAsr());
+                record.setMaghrib(prayerTime.getMaghrib());
+                record.setIsha(prayerTime.getIsha());
+                record.setHijriDate(prayerTime.getHijriDate());
+                
+                // Only update prohibited times if they are set (not null)
+                if (prayerTime.getSunriseProhibitedStart() != null) {
+                    record.setSunriseProhibitedStart(prayerTime.getSunriseProhibitedStart());
+                }
+                if (prayerTime.getSunriseProhibitedEnd() != null) {
+                    record.setSunriseProhibitedEnd(prayerTime.getSunriseProhibitedEnd());
+                }
+                if (prayerTime.getNoonProhibitedStart() != null) {
+                    record.setNoonProhibitedStart(prayerTime.getNoonProhibitedStart());
+                }
+                if (prayerTime.getNoonProhibitedEnd() != null) {
+                    record.setNoonProhibitedEnd(prayerTime.getNoonProhibitedEnd());
+                }
+                if (prayerTime.getSunsetProhibitedStart() != null) {
+                    record.setSunsetProhibitedStart(prayerTime.getSunsetProhibitedStart());
+                }
+                if (prayerTime.getSunsetProhibitedEnd() != null) {
+                    record.setSunsetProhibitedEnd(prayerTime.getSunsetProhibitedEnd());
+                }
+                
+                prayerTimeRepository.save(record);
+                log.info("Updated prayer times for {} from {}", date, source);
+            } else {
+                prayerTimeRepository.save(prayerTime);
+                log.info("Stored prayer times for {} from {}", date, source);
+            }
+        } catch (Exception e) {
+            log.error("Failed to save prayer times for {} from {}: {}", date, source, e.getMessage());
+            // If it's a duplicate key error, try to fetch and update again
+            if (e.getMessage() != null && e.getMessage().contains("duplicate key")) {
+                log.warn("Duplicate key detected, attempting to update existing record for {}", date);
+                try {
+                    Optional<PrayerTime> existing = prayerTimeRepository.findByDate(date);
+                    if (existing.isPresent()) {
+                        PrayerTime record = existing.get();
                         record.setFajr(prayerTime.getFajr());
                         record.setSunrise(prayerTime.getSunrise());
                         record.setDhuhr(prayerTime.getDhuhr());
@@ -289,17 +311,12 @@ public class PrayerTimeService {
                         record.setIsha(prayerTime.getIsha());
                         record.setHijriDate(prayerTime.getHijriDate());
                         prayerTimeRepository.save(record);
-                        log.info("Updated prayer times for {} from Muslim Salat API", date);
-                    } else {
-                        prayerTimeRepository.save(prayerTime);
-                        log.info("Stored prayer times for {} from Muslim Salat API", date);
+                        log.info("Successfully updated existing record for {}", date);
                     }
-                    return;
+                } catch (Exception retryException) {
+                    log.error("Failed to update existing record for {}: {}", date, retryException.getMessage());
                 }
-            
-            log.error("Failed to parse prayer times from any provider for {}", date);
-        } catch (Exception e) {
-            log.error("Error fetching prayer times for {}: {}", date, e.getMessage(), e);
+            }
         }
     }
     
