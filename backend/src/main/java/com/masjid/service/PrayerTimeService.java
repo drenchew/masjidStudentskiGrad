@@ -13,6 +13,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import jakarta.annotation.PostConstruct;
 import java.time.LocalDate;
 import java.util.Optional;
 
@@ -23,6 +24,7 @@ public class PrayerTimeService {
     
     private final PrayerTimeRepository prayerTimeRepository;
     private final PrayerTimeCacheRepository prayerTimeCacheRepository;
+    private final PrayerTimeBinaryLoader binaryLoader;
     private final WebClient.Builder webClientBuilder;
     private final ObjectMapper objectMapper;
     
@@ -54,12 +56,42 @@ public class PrayerTimeService {
     private String backupApiUrl;
     
     /**
+     * Load prayer times from binary file on application startup
+     * This eliminates the need for API calls for the current year
+     */
+    @PostConstruct
+    public void loadBinaryPrayerTimes() {
+        try {
+            int currentYear = LocalDate.now().getYear();
+            log.info("🔄 Loading prayer times from binary file for year {}", currentYear);
+            binaryLoader.loadPrayerTimes(currentYear);
+            
+            if (binaryLoader.isLoaded()) {
+                log.info("✅ Successfully loaded {} days from binary file for year {}", 
+                         binaryLoader.getCachedDaysCount(), currentYear);
+            } else {
+                log.warn("⚠️  Binary file not found for year {}, will use database cache or API fallback", currentYear);
+            }
+        } catch (Exception e) {
+            log.error("❌ Failed to load binary prayer times: {}", e.getMessage(), e);
+            log.info("Will fallback to database cache or API for prayer times");
+        }
+    }
+    
+    /**
      * Fetch and store prayer times for the entire year (365/366 days)
      * This runs once on application startup
+     * Skipped if binary file is already loaded
      */
     @Scheduled(initialDelay = 5000, fixedDelay = Long.MAX_VALUE) // Run once after 5 seconds startup
     public void fetchAndStoreFullYear() {
         log.info("Starting full year prayer times fetch...");
+        
+        // Skip if binary file is already loaded (no need for API calls)
+        if (binaryLoader.isLoaded()) {
+            log.info("✅ Binary file loaded with {} days, skipping API fetch", binaryLoader.getCachedDaysCount());
+            return;
+        }
         
         // Check if we already have data for today - if yes, skip to avoid re-fetching
         LocalDate today = LocalDate.now();
@@ -430,13 +462,24 @@ public class PrayerTimeService {
     public PrayerTime getTodayPrayerTimes() {
         LocalDate today = LocalDate.now();
         
-        // Load from cache (should always be present since we preload the entire year)
+        // Priority 1: Try binary file first (fastest - O(1) in-memory HashMap lookup, ~0.001ms)
+        if (binaryLoader.isLoaded()) {
+            PrayerTime fromBinary = binaryLoader.getPrayerTimeForDate(today);
+            if (fromBinary != null) {
+                log.debug("✅ Loaded prayer times from binary file for {}", today);
+                return fromBinary;
+            }
+        }
+        
+        // Priority 2: Fallback to database cache (O(1) index lookup, ~1-5ms)
         Optional<PrayerTimeCache> cached = prayerTimeCacheRepository.findByPrayerDate(today);
         if (cached.isPresent()) {
+            log.debug("📊 Loaded prayer times from database cache for {}", today);
             return convertCacheToPrayerTime(cached.get());
         }
         
-        log.warn("Prayer times not found in cache for {}, using fallback", today);
+        // Priority 3: Last resort - use fallback times
+        log.warn("⚠️  Prayer times not found in binary or cache for {}, using fallback", today);
         return createFallbackPrayerTimes(today);
     }
     
@@ -494,19 +537,31 @@ public class PrayerTimeService {
     }
     
     public PrayerTime getPrayerTimesByDate(LocalDate date) {
-        // Load from cache (should always be present since we preload the entire year)
+        // Priority 1: Try binary file first (fastest - O(1) in-memory HashMap)
+        if (binaryLoader.isLoaded()) {
+            PrayerTime fromBinary = binaryLoader.getPrayerTimeForDate(date);
+            if (fromBinary != null) {
+                log.debug("✅ Loaded prayer times from binary file for {}", date);
+                return fromBinary;
+            }
+        }
+        
+        // Priority 2: Fallback to database cache
         Optional<PrayerTimeCache> cached = prayerTimeCacheRepository.findByPrayerDate(date);
         if (cached.isPresent()) {
+            log.debug("📊 Loaded prayer times from database cache for {}", date);
             return convertCacheToPrayerTime(cached.get());
         }
         
-        // Fallback to legacy PrayerTime table if cache is missing
+        // Priority 3: Fallback to legacy PrayerTime table if cache is missing
         Optional<PrayerTime> prayerTime = prayerTimeRepository.findByDate(date);
         if (prayerTime.isPresent()) {
+            log.debug("📚 Loaded prayer times from legacy table for {}", date);
             return prayerTime.get();
         }
         
-        log.warn("Prayer times not available for {}", date);
+        // Priority 4: Last resort - create fallback
+        log.warn("⚠️  Prayer times not available anywhere for {}", date);
         return createFallbackPrayerTimes(date);
     }
 }
