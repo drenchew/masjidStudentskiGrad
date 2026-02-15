@@ -1,0 +1,15 @@
+{
+  "year": 2026,
+  "location": {
+    "city": "Sofia",
+    "country": "Bulgaria",
+    "latitude": "42.6977",
+    "longitude": "23.3219"
+  },
+  "method": 13,
+  "school": 1,
+  "totalDays": 365,
+  "fetchedAt": "2026-02-15T10:42:12.068948",
+  "entrySize": 24,
+  "fileSize": 8760
+}
